@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+
+# App data — customer records (backed up separately via OneDrive)
+data/*.json
+data/*.json.tmp
+data/documents/
+
+# Environment / secrets
+.env
+*.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code internal files
+.claude/
+
+# Electron build artifacts
+*.AppImage
+*.snap
+*.deb
+*.rpm
+*.dmg
+*.exe
+*.msi
+*.pkg
