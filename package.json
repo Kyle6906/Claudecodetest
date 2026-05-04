@@ -8,6 +8,7 @@
     "build": "electron-builder --win --x64"
   },
   "dependencies": {
+    "auto-launch": "^5.0.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

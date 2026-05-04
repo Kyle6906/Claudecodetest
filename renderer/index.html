@@ -617,6 +617,23 @@ main {
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
 .toggle-label-text { font-size: 14px; color: #333; }
 
+/* ── Lead Generation Engine ──────────────────────────────────────────────── */
+.lg-result-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: #fff; transition: background 0.2s; }
+.lg-result-card:hover { background: #f9fbff; }
+.lg-result-card.lg-added { background: #f1f8e9; border-color: #a5d6a7; }
+.lg-industry-group { margin-bottom: 6px; }
+.lg-industry-group-label { font-size: 12px; font-weight: 700; color: #444; cursor: pointer; padding: 3px 0; user-select: none; display: flex; align-items: center; gap: 4px; }
+.lg-industry-group-label::before { content: '▸'; font-size: 10px; color: #888; }
+.lg-industry-group-label.open::before { content: '▾'; }
+.lg-industry-types { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 0 4px 10px; }
+.lg-history-row { display: flex; gap: 8px; align-items: baseline; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
+.apollo-person-card { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #e3f2fd; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; background: #fafcff; }
+.api-key-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f5f5f5; }
+.api-key-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.api-key-help-panel { background: #f5f5f5; border-radius: 6px; padding: 12px 16px; margin-top: 8px; font-size: 13px; line-height: 1.6; color: #333; }
+.api-key-help-panel ol { margin: 8px 0 0 0; padding-left: 18px; }
+.api-key-help-panel li { margin-bottom: 4px; }
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -1275,6 +1292,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       </div>
       <div id="dash-docs-list"><div style="color:#aaa;font-size:13px;padding:8px 0">No documents yet.</div></div>
     </div>
+    <div class="card dash-grid-full" id="dash-leadgen-widget">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        Lead Generation
+        <button class="btn-icon" onclick="openFindLeadsModal();switchTab('leads');" style="font-size:12px">Find New Leads →</button>
+      </div>
+      <div id="dash-leadgen-stats"><span style="color:#aaa;font-size:13px">Loading...</span></div>
+    </div>
     <div class="card dash-grid-full">
       <div class="section-title">Monthly Breakdown (<span id="ytd-year"></span>)</div>
       <table class="data-table">
@@ -1447,7 +1471,8 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <button class="rep-view-btn" id="leads-view-grouped-btn">By Zip</button>
         <button class="rep-view-btn" id="leads-view-territory-btn">Territory Stats</button>
       </div>
-      <button class="btn-icon" id="btn-lead-finder" style="white-space:nowrap;background:#e8eef8;color:#1a3a7a;border:1px solid #c5d3f5">Lead Finder</button>
+      <button class="btn-save" id="btn-find-new-leads" onclick="openFindLeadsModal()" style="white-space:nowrap;background:#1a3a7a;font-size:13px">&#128270; Find New Leads</button>
+      <button class="btn-icon" id="btn-lead-finder" style="white-space:nowrap;background:#e8eef8;color:#1a3a7a;border:1px solid #c5d3f5">Territory Filter</button>
       <button class="btn-icon" id="btn-import-leads" style="white-space:nowrap;background:#fce4ec;color:#880e4f;border:1px solid #f8bbd0">Import Potential Customers</button>
       <button class="btn-add" id="btn-add-lead">+ New Contact</button>
       <button class="btn-icon" id="btn-export-leads" style="white-space:nowrap">Export Excel</button>
@@ -1623,6 +1648,120 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn-save" onclick="openBackupModal()">Backup Settings &amp; Recovery →</button>
         <button class="btn-save" style="background:#1a3a7a" onclick="backupNowFromBanner()">⬆ Back Up Now</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Startup &amp; System</div>
+      <p style="font-size:13px;color:#666;margin:0 0 14px">Control how the app starts and behaves in the background.</p>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a">Launch on Windows Startup</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Start automatically when you log in to Windows</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sys-auto-launch" onchange="toggleAutoLaunch(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a">Start minimized</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Launch to the taskbar instead of opening the window</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sys-start-minimized" onchange="toggleStartMinimized(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a">Close to system tray</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Clicking × hides the window — use Exit in the tray menu to fully quit</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sys-close-to-tray" onchange="toggleCloseToTray(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a1a">Show startup notification</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Show a Windows notification when the app finishes loading</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sys-startup-notification" onchange="toggleStartupNotification(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:12px">
+        <button class="btn-cancel" onclick="window.aflAPI.exitApp()" style="font-size:13px;color:#cc0000;border-color:#cc0000">Exit Application</button>
+        <span style="font-size:12px;color:#aaa">Saves backup &amp; syncs to GitHub before closing</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Lead Generation</div>
+      <p style="font-size:13px;color:#666;margin:0 0 16px">API keys for Google Maps Lead Finder and Apollo.io Decision Maker search. Keys are stored locally and never leave your computer.</p>
+
+      <!-- Google Maps -->
+      <div class="api-key-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1a1a1a">Google Maps API Key</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Powers the Lead Finder — searches for businesses near your territory zip codes</div>
+          </div>
+          <span id="maps-api-key-status"></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input class="form-input" id="maps-api-key-input" type="password" placeholder="AIzaSy..." style="flex:1;min-width:220px;font-family:monospace;font-size:13px">
+          <button class="btn-save" onclick="saveLeadGenKey('maps')" style="font-size:13px;padding:8px 16px">Save &amp; Test</button>
+        </div>
+        <div style="margin-top:6px">
+          <a href="#" onclick="showApiKeyHelp('maps');return false" style="font-size:12px;color:#1565c0">How to get this key ▸</a>
+        </div>
+        <div class="api-key-help-panel" id="maps-key-help" style="display:none">
+          <strong>Google Maps Platform (Places API + Geocoding API)</strong>
+          <ol>
+            <li>Go to <strong>console.cloud.google.com</strong> and sign in with a Google account</li>
+            <li>Create a new project (or select an existing one)</li>
+            <li>Search for <strong>"Places API"</strong> and enable it, then enable <strong>"Geocoding API"</strong></li>
+            <li>Go to <strong>APIs &amp; Services → Credentials</strong> and click <strong>"+ Create Credentials → API Key"</strong></li>
+            <li>Copy the key and paste it above — Google provides $200/month free credit (~40,000 searches)</li>
+            <li>Optionally restrict the key to only Places API + Geocoding API for security</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Apollo.io -->
+      <div class="api-key-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1a1a1a">Apollo.io API Key</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Find decision makers (Operations, Warehouse, Procurement managers) at any company</div>
+          </div>
+          <span id="apollo-api-key-status"></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input class="form-input" id="apollo-api-key-input" type="password" placeholder="your-apollo-api-key" style="flex:1;min-width:220px;font-family:monospace;font-size:13px">
+          <button class="btn-save" onclick="saveLeadGenKey('apollo')" style="font-size:13px;padding:8px 16px">Save &amp; Test</button>
+        </div>
+        <div style="margin-top:6px">
+          <a href="#" onclick="showApiKeyHelp('apollo');return false" style="font-size:12px;color:#1565c0">How to get this key ▸</a>
+        </div>
+        <div class="api-key-help-panel" id="apollo-key-help" style="display:none">
+          <strong>Apollo.io API Key (free tier available)</strong>
+          <ol>
+            <li>Go to <strong>app.apollo.io</strong> and create a free account</li>
+            <li>Once logged in, click your profile icon → <strong>Settings</strong></li>
+            <li>Go to <strong>Integrations → API</strong></li>
+            <li>Copy your API key and paste it above</li>
+            <li>Free tier includes: people search (names &amp; titles always visible), 50 email reveals/month</li>
+            <li>Emails marked "needs reveal" require spending 1 export credit (50 free/month)</li>
+          </ol>
+        </div>
       </div>
     </div>
 
@@ -1938,6 +2077,26 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <button class="btn-cancel" id="close-lead-profile">Close</button>
       <button class="btn-save" id="edit-lead-from-profile" style="background:#1565c0">Edit Lead</button>
       <button class="btn-save" id="start-quote-from-lead-btn" style="background:#1a3a7a;display:none">Start Quote →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Find New Leads (Google Maps Discovery) ─────────────────────── -->
+<div class="modal-overlay" id="overlay-find-leads">
+  <div class="modal modal-lg" style="max-width:960px;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div class="modal-title" style="margin:0">Find New Leads — Google Maps</div>
+      <button class="btn-cancel" onclick="closeFindLeadsModal()" style="font-size:18px;padding:2px 8px;line-height:1">×</button>
+    </div>
+    <div style="padding:16px 24px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0" id="find-leads-search-panel">
+      <!-- populated by _renderFindLeadsModal() -->
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px 24px" id="find-leads-results">
+      <div style="text-align:center;padding:40px;color:#aaa;font-size:14px">Select zip codes and industry types, then click Search.</div>
+    </div>
+    <div style="padding:10px 24px;background:#f9f9f9;border-top:1px solid #e0e0e0;flex-shrink:0">
+      <div style="font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Recent Searches</div>
+      <div id="find-leads-history"><span style="color:#aaa;font-size:12px">No searches yet.</span></div>
     </div>
   </div>
 </div>
@@ -3218,6 +3377,9 @@ function renderDashboard() {
 
   // Leads widget
   renderDashboardLeads();
+
+  // Lead Gen widget
+  renderDashLeadGen();
 }
 
 function buildCustStats() {
@@ -5306,6 +5468,7 @@ function renderLeadsTerritoryView() {
 }
 
 function renderSettings() {
+  renderLeadGenSettings();
   const chips = document.getElementById('territory-zip-chips');
   if (!chips) return;
   const zips = getTerritoryZips();
@@ -5611,6 +5774,18 @@ function openLeadProfile(id) {
       <div class="cust-info-label" style="margin-bottom:4px">Notes</div>
       <textarea id="lead-profile-notes" rows="3" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:13px;resize:vertical;box-sizing:border-box" placeholder="Add notes...">${esc(l.notes||'')}</textarea>
       <button class="btn-icon" style="margin-top:4px;font-size:12px" onclick="saveLeadProfileNotes('${l.id}')">Save Notes</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-title" style="margin-bottom:0">Decision Makers (Apollo.io)</div>
+        <button class="btn-save" onclick="findDecisionMakers('${l.id}')" style="font-size:12px;padding:5px 12px;background:#3f51b5"
+          ${lgCfg().apolloApiKey ? '' : 'title="Add Apollo.io API key in Settings to use this feature"'}>
+          ${lgCfg().apolloApiKey ? 'Find Decision Makers' : '&#128274; Find Decision Makers'}
+        </button>
+      </div>
+      <div id="apollo-results-${l.id}">
+        <div style="font-size:12px;color:#aaa;padding:4px 0">${lgCfg().apolloApiKey ? 'Click the button to search Apollo.io for contacts at this company.' : 'Add your Apollo.io API key in Settings → Lead Generation to use this feature.'}</div>
+      </div>
     </div>
     <div>
       <div class="section-title" style="margin-bottom:8px">Activity Log</div>
@@ -7720,6 +7895,782 @@ async function showBackupSetupModal() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// LEAD GENERATION ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+const LEADGEN_DEFAULTS = {
+  mapsApiKey: '', apolloApiKey: '',
+  apolloSearchesThisMonth: 0, apolloResetDate: '',
+  searchHistory: [],
+  mapsKeyValid: null, apolloKeyValid: null,
+};
+
+function lgCfg() {
+  if (!appState.settings) appState.settings = {};
+  if (!appState.settings.leadGen) appState.settings.leadGen = { ...LEADGEN_DEFAULTS };
+  return appState.settings.leadGen;
+}
+
+// ── Industry groups ────────────────────────────────────────────────────────────
+
+const LG_INDUSTRY_GROUPS = {
+  'Warehouse & Distribution': ['Warehouse', 'Distribution Center', 'Fulfillment Center', 'Cold Storage', 'Freight & Logistics', 'Trucking Company'],
+  'Manufacturing & Industrial': ['Manufacturing Plant', 'Industrial Facility', 'Auto Parts', 'Steel & Metal', 'Lumber & Building Materials', 'Printing & Publishing', 'Recycling & Waste'],
+  'Food & Beverage': ['Food Distribution', 'Beverage Distribution', 'Grocery Warehouse', 'Food Processing', 'Restaurant Supply'],
+  'Other': ['Wholesale Trade', 'Retail Distribution', 'Pharmaceutical', 'Construction Supply', 'Farm & Agriculture'],
+};
+
+const LG_INDUSTRY_QUERIES = {
+  'Warehouse': 'warehouse', 'Distribution Center': 'distribution center',
+  'Fulfillment Center': 'fulfillment center', 'Cold Storage': 'cold storage',
+  'Freight & Logistics': 'freight logistics', 'Trucking Company': 'trucking company',
+  'Manufacturing Plant': 'manufacturing plant', 'Industrial Facility': 'industrial facility',
+  'Auto Parts': 'auto parts', 'Steel & Metal': 'steel metal supplier',
+  'Lumber & Building Materials': 'lumber building materials', 'Printing & Publishing': 'printing company',
+  'Recycling & Waste': 'recycling waste', 'Food Distribution': 'food distribution',
+  'Beverage Distribution': 'beverage distribution', 'Grocery Warehouse': 'grocery warehouse',
+  'Food Processing': 'food processing', 'Restaurant Supply': 'restaurant supply',
+  'Wholesale Trade': 'wholesale trade', 'Retail Distribution': 'retail distribution',
+  'Pharmaceutical': 'pharmaceutical', 'Construction Supply': 'construction supply',
+  'Farm & Agriculture': 'farm agriculture',
+};
+
+const LG_MILES_TO_METERS = { '1': 1609, '3': 4827, '5': 8047, '10': 16093 };
+
+// ── State ──────────────────────────────────────────────────────────────────────
+
+let lgResults = [];
+let lgResultsShown = 0;
+let lgSessionAdded = 0;
+let lgSearching = false;
+let lgGeoCache = {};
+let lgCurrentSearchParams = null;
+const _lgApolloPeople = {};
+
+// ── Settings UI ────────────────────────────────────────────────────────────────
+
+function renderLeadGenSettings() {
+  const cfg = lgCfg();
+  _lgUpdateKeyBadge('maps-api-key-status', cfg.mapsApiKey, cfg.mapsKeyValid);
+  _lgUpdateKeyBadge('apollo-api-key-status', cfg.apolloApiKey, cfg.apolloKeyValid);
+  const mapsInput = document.getElementById('maps-api-key-input');
+  const apolloInput = document.getElementById('apollo-api-key-input');
+  if (mapsInput && cfg.mapsApiKey) mapsInput.value = cfg.mapsApiKey;
+  if (apolloInput && cfg.apolloApiKey) apolloInput.value = cfg.apolloApiKey;
+}
+
+function _lgUpdateKeyBadge(id, key, valid) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!key) {
+    el.innerHTML = '<span style="color:#aaa;font-size:12px">Not configured</span>';
+  } else if (valid === true) {
+    el.innerHTML = '<span style="color:#2e7d32;font-weight:700;font-size:12px">● Connected</span>';
+  } else if (valid === false) {
+    el.innerHTML = '<span style="color:#c62828;font-weight:700;font-size:12px">● Not Connected</span>';
+  } else {
+    el.innerHTML = '<span style="color:#f57c00;font-size:12px">● Saved — not yet tested</span>';
+  }
+}
+
+async function saveLeadGenKey(type) {
+  const inputId = type === 'maps' ? 'maps-api-key-input' : 'apollo-api-key-input';
+  const key = (document.getElementById(inputId)?.value || '').trim();
+  if (!key) { toast('Please enter a key first', 'warn'); return; }
+
+  const cfg = lgCfg();
+  if (type === 'maps') { cfg.mapsApiKey = key; cfg.mapsKeyValid = null; }
+  else                 { cfg.apolloApiKey = key; cfg.apolloKeyValid = null; }
+  await saveData();
+
+  const statusId = type === 'maps' ? 'maps-api-key-status' : 'apollo-api-key-status';
+  const statusEl = document.getElementById(statusId);
+  if (statusEl) statusEl.innerHTML = '<span style="color:#888;font-size:12px">Testing...</span>';
+
+  const result = type === 'maps'
+    ? await window.aflAPI.lgTestMaps(key)
+    : await window.aflAPI.lgTestApollo(key);
+
+  if (type === 'maps') cfg.mapsKeyValid   = result.ok;
+  else                  cfg.apolloKeyValid = result.ok;
+  await saveData();
+  renderLeadGenSettings();
+
+  if (result.ok) {
+    toast(type === 'maps' ? 'Google Maps API key connected!' : 'Apollo.io API key connected!');
+  } else {
+    toast(`Key test failed: ${result.error || 'Invalid key'}`, 'error');
+  }
+}
+
+function showApiKeyHelp(type) {
+  const el = document.getElementById(type === 'maps' ? 'maps-key-help' : 'apollo-key-help');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── Lead Discovery Modal ───────────────────────────────────────────────────────
+
+function openFindLeadsModal() {
+  const cfg = lgCfg();
+  if (!cfg.mapsApiKey) {
+    toast('Add your Google Maps API key in Settings → Lead Generation first', 'warn');
+    switchTab('settings');
+    return;
+  }
+  _renderFindLeadsModalControls();
+  document.getElementById('overlay-find-leads').classList.add('open');
+}
+
+function closeFindLeadsModal() {
+  document.getElementById('overlay-find-leads').classList.remove('open');
+}
+
+function _renderFindLeadsModalControls() {
+  const zips = getTerritoryZips();
+  const zipChecks = zips.length
+    ? zips.map(z => {
+        const city = TERRITORY_ZIP_CITIES[z] || '';
+        return `<label class="zip-check-item checked" style="font-size:12px">
+          <input type="checkbox" class="lg-zip-check" value="${esc(z)}" checked>
+          ${esc(z)}${city ? ` <span style="color:#999;font-size:10px">${esc(city)}</span>` : ''}
+        </label>`;
+      }).join('')
+    : '<span style="color:#aaa;font-size:13px">No territory zips configured — add in Settings.</span>';
+
+  const groupsHtml = Object.entries(LG_INDUSTRY_GROUPS).map(([group, types]) => `
+    <div class="lg-industry-group">
+      <div class="lg-industry-group-label" onclick="lgToggleGroup(this)">${esc(group)}</div>
+      <div class="lg-industry-types" style="display:none">
+        ${types.map(t => `<label class="zip-check-item" style="font-size:12px">
+          <input type="checkbox" class="lg-industry-check" value="${esc(t)}">
+          ${esc(t)}
+        </label>`).join('')}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('find-leads-search-panel').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          Zip Codes
+          <button class="btn-icon" onclick="lgSelectAllZips(true)" style="font-size:10px;padding:1px 6px">All</button>
+          <button class="btn-icon" onclick="lgSelectAllZips(false)" style="font-size:10px;padding:1px 6px">None</button>
+        </div>
+        <div class="zip-checklist" style="max-height:170px;overflow-y:auto">${zipChecks}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          Industry Type
+          <button class="btn-icon" onclick="lgSelectAllIndustries(true)" style="font-size:10px;padding:1px 6px">All</button>
+          <button class="btn-icon" onclick="lgSelectAllIndustries(false)" style="font-size:10px;padding:1px 6px">None</button>
+        </div>
+        <div style="max-height:170px;overflow-y:auto">${groupsHtml}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px">Search Options</div>
+        <div>
+          <div style="font-size:12px;color:#666;margin-bottom:3px">Search Radius</div>
+          <select class="form-select" id="lg-radius" style="font-size:13px">
+            <option value="1">1 mile</option>
+            <option value="3">3 miles</option>
+            <option value="5" selected>5 miles</option>
+            <option value="10">10 miles</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#666;margin-bottom:3px">Keyword (optional)</div>
+          <input class="form-input" id="lg-keyword" type="text" placeholder='e.g. "Amazon" or "forklift"' style="font-size:13px">
+        </div>
+        <button class="btn-save" id="lg-search-btn" onclick="runLgSearch(false)" style="background:#1a3a7a;font-size:13px" ${lgSearching?'disabled':''}>Search Selected Zips</button>
+        <button class="btn-save" id="lg-search-all-btn" onclick="runLgSearch(true)" style="background:#1565c0;font-size:13px" ${lgSearching?'disabled':''}>Search All Territory</button>
+      </div>
+    </div>
+    <div id="lg-search-progress" style="display:none;font-size:13px;color:#555;padding:8px 0 0;border-top:1px solid #f0f0f0;margin-top:10px"></div>`;
+
+  _renderLgResults();
+  _renderLgHistory();
+}
+
+function lgSelectAllZips(select) {
+  document.querySelectorAll('#find-leads-search-panel .lg-zip-check').forEach(cb => {
+    cb.checked = select;
+    cb.closest('label').classList.toggle('checked', select);
+  });
+}
+
+function lgSelectAllIndustries(select) {
+  document.querySelectorAll('#find-leads-search-panel .lg-industry-check').forEach(cb => {
+    cb.checked = select;
+    cb.closest('label').classList.toggle('checked', select);
+  });
+}
+
+function lgToggleGroup(labelEl) {
+  const typesDiv = labelEl.nextElementSibling;
+  if (!typesDiv) return;
+  const open = typesDiv.style.display !== 'none';
+  typesDiv.style.display = open ? 'none' : '';
+  labelEl.classList.toggle('open', !open);
+}
+
+async function runLgSearch(allTerritory) {
+  if (lgSearching) return;
+  const cfg = lgCfg();
+
+  const zips = allTerritory
+    ? getTerritoryZips()
+    : [...document.querySelectorAll('#find-leads-search-panel .lg-zip-check:checked')].map(cb => cb.value);
+
+  if (zips.length === 0) { toast('Select at least one zip code', 'warn'); return; }
+
+  const selectedIndustries = [...document.querySelectorAll('#find-leads-search-panel .lg-industry-check:checked')].map(cb => cb.value);
+  const radius = parseInt(document.getElementById('lg-radius')?.value || '5');
+  const keyword = (document.getElementById('lg-keyword')?.value || '').trim();
+
+  // Build search query from selected industries (up to 5 terms)
+  const queryTerms = selectedIndustries.map(t => LG_INDUSTRY_QUERIES[t] || t).filter(Boolean).slice(0, 5);
+  if (keyword) queryTerms.unshift(keyword);
+  const queryBase = queryTerms.length > 0 ? queryTerms.join(' ') : 'warehouse industrial manufacturing';
+
+  lgSearching = true;
+  lgResults = [];
+  lgResultsShown = 0;
+  lgSessionAdded = 0;
+  lgCurrentSearchParams = { zips, industries: selectedIndustries, keyword, radius };
+
+  const progressEl = document.getElementById('lg-search-progress');
+  const btn1 = document.getElementById('lg-search-btn');
+  const btn2 = document.getElementById('lg-search-all-btn');
+  if (progressEl) { progressEl.style.display = 'block'; progressEl.textContent = `Starting search across ${zips.length} zip code(s)...`; }
+  if (btn1) btn1.disabled = true;
+  if (btn2) btn2.disabled = true;
+
+  try {
+    const seenPlaceIds = new Set();
+    const radiusMeters = LG_MILES_TO_METERS[String(radius)] || 8047;
+
+    for (let i = 0; i < zips.length; i++) {
+      const zip = zips[i];
+      if (progressEl) progressEl.textContent = `Searching ${zip} (${i + 1}/${zips.length})...`;
+
+      // Geocode zip (cached)
+      let latLng = lgGeoCache[zip];
+      if (!latLng) {
+        const geo = await window.aflAPI.lgGeocode({ zip, apiKey: cfg.mapsApiKey });
+        if (geo.ok) { lgGeoCache[zip] = { lat: geo.lat, lng: geo.lng }; latLng = lgGeoCache[zip]; }
+      }
+
+      const query = `${queryBase} near ${zip} GA`;
+      const res = await window.aflAPI.lgMapsSearch({
+        apiKey: cfg.mapsApiKey, query,
+        lat: latLng?.lat, lng: latLng?.lng, radius: radiusMeters,
+      });
+
+      if (!res.ok) {
+        if (progressEl) progressEl.textContent = `Error for ${zip}: ${res.error}`;
+        continue;
+      }
+
+      for (const place of res.results) {
+        if (seenPlaceIds.has(place.place_id)) continue;
+        seenPlaceIds.add(place.place_id);
+        const dist = latLng ? _lgHaversine(latLng.lat, latLng.lng, place.geometry.location.lat, place.geometry.location.lng) : null;
+        lgResults.push({ ...place, _sourceZip: zip, _distanceMiles: dist });
+      }
+    }
+
+    lgResults.sort((a, b) => (a._distanceMiles ?? 999) - (b._distanceMiles ?? 999));
+
+    if (progressEl) {
+      const msg = lgResults.length > 0
+        ? `Found ${lgResults.length} result${lgResults.length !== 1 ? 's' : ''} — ${lgSessionAdded} added this session`
+        : `No results found. Try selecting different industry types or a larger radius.`;
+      progressEl.textContent = msg;
+    }
+
+    // Save to history
+    const histEntry = { id: genId('lgh'), date: new Date().toISOString(), zips, industries: selectedIndustries, keyword, resultsFound: lgResults.length, resultsAdded: 0 };
+    lgCfg().searchHistory = [histEntry, ...(lgCfg().searchHistory || [])].slice(0, 20);
+    lgCurrentSearchParams._histId = histEntry.id;
+    await saveData();
+
+  } catch (err) {
+    if (progressEl) progressEl.textContent = `Search error: ${err.message}`;
+  } finally {
+    lgSearching = false;
+    if (btn1) btn1.disabled = false;
+    if (btn2) btn2.disabled = false;
+  }
+
+  lgResultsShown = 0;
+  _renderLgResults();
+  _renderLgHistory();
+}
+
+function _lgHaversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function _lgZipFromAddress(addr) {
+  const m = (addr || '').match(/\b(\d{5})\b/);
+  return m ? m[1] : '';
+}
+
+function _lgCheckDuplicate(name, zip) {
+  const nl = (name || '').toLowerCase();
+  const exact = appState.leads.find(l =>
+    (l.companyName || '').toLowerCase() === nl && (l.zip || '') === (zip || '')
+  );
+  if (exact) return { type: 'exact', lead: exact };
+  if (zip) {
+    const close = appState.leads.find(l => {
+      const ll = (l.companyName || '').toLowerCase();
+      return (l.zip || '') === zip && (ll.includes(nl.split(' ')[0]) || nl.includes(ll.split(' ')[0]));
+    });
+    if (close) return { type: 'close', lead: close };
+  }
+  return null;
+}
+
+function _renderLgResults() {
+  const el = document.getElementById('find-leads-results');
+  if (!el) return;
+
+  if (lgResults.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:#aaa;font-size:14px">${lgSearching ? 'Searching...' : 'No results yet. Select zip codes and industry types, then click Search.'}</div>`;
+    return;
+  }
+
+  const PAGE = 20;
+  const toShow = lgResults.slice(0, Math.max(lgResultsShown, PAGE) + PAGE);
+  lgResultsShown = Math.min(toShow.length, lgResults.length);
+
+  const cards = lgResults.slice(0, lgResultsShown).map((p, idx) => {
+    const zip = _lgZipFromAddress(p.formatted_address || '');
+    const dup = _lgCheckDuplicate(p.name, zip);
+    const isCustomer = dup && appState.sales.some(s => (s.customerName || '').toLowerCase() === (p.name || '').toLowerCase());
+
+    let statusBadge, actionBtn;
+    if (isCustomer) {
+      statusBadge = `<span class="badge" style="background:#e8f5e9;color:#1b5e20;font-size:11px">Customer</span>`;
+      actionBtn = `<button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px">View Record →</button>`;
+    } else if (dup?.type === 'exact') {
+      statusBadge = `<span class="badge" style="background:#e3f2fd;color:#0d47a1;font-size:11px">Already in System</span>`;
+      actionBtn = `<button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px">View Record →</button>`;
+    } else if (dup?.type === 'close') {
+      statusBadge = `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:11px">Possible Duplicate</span>`;
+      actionBtn = `<button class="btn-save" onclick="lgAddResult(${idx})" style="font-size:11px;padding:4px 10px;background:#1a3a7a">+ Add as Lead</button>
+                   <button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px;margin-left:4px">View Similar →</button>`;
+    } else {
+      statusBadge = `<span class="badge" style="background:#f3e5f5;color:#6a1b9a;font-size:11px">New</span>`;
+      actionBtn = `<button class="btn-save" id="lg-add-${idx}" onclick="lgAddResult(${idx})" style="font-size:11px;padding:4px 10px;background:#1a3a7a">+ Add as Lead</button>`;
+    }
+
+    const rating = p.rating ? `<span style="color:#f57c00;font-size:12px">★ ${p.rating}</span> <span style="color:#999;font-size:11px">(${p.user_ratings_total || 0})</span>` : '';
+    const dist = p._distanceMiles != null ? `<span style="color:#777;font-size:11px">${p._distanceMiles.toFixed(1)} mi from ${p._sourceZip}</span>` : '';
+
+    return `<div class="lg-result-card" id="lg-card-${idx}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:2px">${esc(p.name)}</div>
+          <div style="font-size:12px;color:#666;margin-bottom:4px">${esc(p.formatted_address || '')}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${rating}${dist}${statusBadge}</div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">${actionBtn}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const hasMore = lgResults.length > lgResultsShown;
+  const header = `<div style="padding:6px 0 10px;font-size:13px;color:#555;border-bottom:1px solid #eee;margin-bottom:8px">
+    Found <strong>${lgResults.length}</strong> result${lgResults.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
+    <strong>${lgSessionAdded}</strong> added this session
+  </div>`;
+  const footer = hasMore
+    ? `<div style="text-align:center;padding:12px 0"><button class="btn-icon" onclick="lgLoadMore()" style="font-size:13px">Load ${Math.min(20, lgResults.length - lgResultsShown)} more of ${lgResults.length - lgResultsShown} remaining</button></div>`
+    : '';
+
+  el.innerHTML = header + cards + footer;
+}
+
+function lgLoadMore() {
+  lgResultsShown = 0;
+  _renderLgResults();
+}
+
+function lgViewRecord(leadId) {
+  closeFindLeadsModal();
+  openLeadProfile(leadId);
+}
+
+async function lgAddResult(idx) {
+  const place = lgResults[idx];
+  if (!place) return;
+  const cfg = lgCfg();
+
+  const addBtn = document.getElementById(`lg-add-${idx}`);
+  if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Adding...'; }
+
+  // Fetch details (phone + website)
+  let details = null;
+  try {
+    const dr = await window.aflAPI.lgMapsDetails({ apiKey: cfg.mapsApiKey, placeId: place.place_id });
+    if (dr.ok) details = dr.result;
+  } catch {}
+
+  const addr = place.formatted_address || '';
+  const zip = _lgZipFromAddress(addr);
+  const parts = addr.split(',').map(s => s.trim());
+  const street = parts[0] || '';
+  const city = parts[1] || '';
+
+  // Final duplicate guard
+  const dup = _lgCheckDuplicate(place.name, zip);
+  if (dup?.type === 'exact') {
+    toast('This business is already in your contacts', 'warn');
+    if (addBtn) { addBtn.disabled = false; addBtn.textContent = '+ Add as Lead'; }
+    return;
+  }
+
+  const phone = details?.formatted_phone_number || '';
+  const website = details?.website || '';
+  let domain = '';
+  try { if (website) domain = new URL(website.startsWith('http') ? website : 'https://' + website).hostname.replace(/^www\./, ''); } catch {}
+
+  const now = new Date().toISOString();
+  const lead = {
+    id: genId('l'),
+    companyName: place.name, contactName: '', firstName: '', lastName: '',
+    phone, email: '', street, city, state: 'GA', zip,
+    website, domain,
+    industry: _lgGuessIndustry(place),
+    leadSource: 'lead_finder_maps',
+    status: 'contact',
+    notes: place.rating ? `Google Maps rating: ★ ${place.rating} (${place.user_ratings_total || 0} reviews)` : '',
+    statusHistory: [], activityLog: [],
+    lastActivityDate: today(), createdAt: now, updatedAt: now, linkedCustomerId: null,
+    mapsPlaceId: place.place_id, mapsRating: place.rating || null,
+  };
+
+  appState.leads.push(lead);
+  lgSessionAdded++;
+
+  // Update history entry count
+  if (lgCurrentSearchParams?._histId) {
+    const h = (lgCfg().searchHistory || []).find(x => x.id === lgCurrentSearchParams._histId);
+    if (h) h.resultsAdded = (h.resultsAdded || 0) + 1;
+  }
+
+  await saveData();
+  renderLeads();
+  renderDashLeadGen();
+  toast(`${place.name} added to Contacts/Leads`);
+
+  // Mark card as added
+  const card = document.getElementById(`lg-card-${idx}`);
+  if (card) {
+    card.classList.add('lg-added');
+    const actionDiv = card.querySelector('div > div:last-child');
+    if (actionDiv) actionDiv.innerHTML = `<span style="font-size:12px;color:#2e7d32;font-weight:600">✓ Added</span>
+      <button class="btn-icon" onclick="lgViewRecord('${esc(lead.id)}')" style="font-size:11px;margin-left:4px">View →</button>`;
+  }
+}
+
+function _lgGuessIndustry(place) {
+  const types = (place.types || []).join(' ').toLowerCase();
+  const name = (place.name || '').toLowerCase();
+  if (name.match(/food|beverage|grocery|restaurant|cater/)) return 'food_beverage';
+  if (name.match(/auto|car |vehicle|motor/)) return 'automotive';
+  if (name.match(/warehouse|storag|distribut|fulfillment/)) return 'warehouse';
+  if (name.match(/manufactur|industrial|factory|plant/)) return 'manufacturing';
+  if (name.match(/construct|lumber|building material/)) return 'construction';
+  if (name.match(/truck|freight|logistic|carrier/)) return 'distribution';
+  if (types.includes('food')) return 'food_beverage';
+  return 'other';
+}
+
+function _renderLgHistory() {
+  const el = document.getElementById('find-leads-history');
+  if (!el) return;
+  const history = (lgCfg().searchHistory || []).slice(0, 6);
+  if (history.length === 0) {
+    el.innerHTML = '<span style="color:#aaa;font-size:12px">No searches yet.</span>';
+    return;
+  }
+  el.innerHTML = history.map(h => {
+    const d = new Date(h.date);
+    const ds = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const zipStr = (h.zips || []).length > 3 ? `${h.zips.slice(0, 3).join(', ')} +${h.zips.length - 3}` : (h.zips || []).join(', ');
+    const indStr = (h.industries || []).length > 3 ? `${h.industries.slice(0, 3).join(', ')} +${h.industries.length - 3}` : (h.industries || []).slice(0, 3).join(', ');
+    return `<div class="lg-history-row">
+      <span style="color:#888;white-space:nowrap;min-width:80px">${ds}</span>
+      <span style="color:#333;min-width:120px">${esc(zipStr || '—')}</span>
+      <span style="color:#666;flex:1">${esc(indStr || 'All')}</span>
+      <span style="color:#1a3a7a;white-space:nowrap">${h.resultsFound} found, ${h.resultsAdded} added</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Apollo Decision Maker Finder ────────────────────────────────────────────────
+
+async function findDecisionMakers(leadId) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  const cfg = lgCfg();
+  const el = document.getElementById(`apollo-results-${leadId}`);
+  if (!el) return;
+
+  if (!cfg.apolloApiKey) {
+    el.innerHTML = `<div style="color:#c62828;font-size:13px;padding:8px 0">Add your Apollo.io API key in Settings → Lead Generation to use this feature.</div>`;
+    return;
+  }
+
+  el.innerHTML = `<div style="color:#888;font-size:13px;padding:8px 0">Searching Apollo.io for decision makers at <strong>${esc(l.companyName)}</strong>...</div>`;
+
+  const result = await window.aflAPI.lgApolloSearch({ apiKey: cfg.apolloApiKey, companyName: l.companyName, domain: l.domain || '' });
+
+  // Track usage & reset monthly if needed
+  const now = new Date();
+  if (!cfg.apolloResetDate || now >= new Date(cfg.apolloResetDate)) {
+    cfg.apolloSearchesThisMonth = 0;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    cfg.apolloResetDate = next.toISOString().slice(0, 10);
+  }
+  cfg.apolloSearchesThisMonth = (cfg.apolloSearchesThisMonth || 0) + 1;
+  await saveData();
+  renderDashLeadGen();
+
+  if (!result.ok) {
+    el.innerHTML = `<div style="color:#c62828;font-size:13px;padding:8px 0">Apollo search failed: ${esc(result.error || 'Unknown error')}. Verify your API key in Settings.</div>`;
+    return;
+  }
+
+  const people = result.people || [];
+  _lgApolloPeople[leadId] = people;
+
+  if (people.length === 0) {
+    el.innerHTML = `<div style="color:#888;font-size:13px;padding:8px 0">No decision makers found at <strong>${esc(l.companyName)}</strong> on Apollo.io. Try adjusting the company name or checking your Apollo subscription.</div>`;
+    return;
+  }
+
+  const creditsUsed = cfg.apolloSearchesThisMonth || 0;
+  el.innerHTML = `<div style="font-size:12px;color:#666;margin-bottom:8px">${people.length} contact${people.length > 1 ? 's' : ''} found via Apollo.io &nbsp;·&nbsp; ${creditsUsed} search${creditsUsed !== 1 ? 'es' : ''} used this month</div>`
+    + people.map((p, idx) => {
+        const name = esc(p.name || [p.first_name, p.last_name].filter(Boolean).join(' ') || '—');
+        const title = esc(p.title || '—');
+        const hasEmail = p.email && !p.email.includes('*');
+        const emailHtml = hasEmail
+          ? `<span style="color:#1565c0;font-size:12px">${esc(p.email)}</span>`
+          : `<span style="color:#bbb;font-size:11px">${p.email ? 'Email (requires credit reveal)' : 'No email'}</span>`;
+        const phone = p.phone_numbers?.[0]?.sanitized_number || '';
+        const li = p.linkedin_url ? `<a href="#" onclick="event.preventDefault()" style="color:#0077b5;font-size:11px" title="${esc(p.linkedin_url)}">LinkedIn ↗</a>` : '';
+        return `<div class="apollo-person-card">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px;color:#1a1a1a">${name}</div>
+            <div style="font-size:12px;color:#555;margin-top:1px">${title}</div>
+            <div style="font-size:12px;color:#666;margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">${emailHtml}${phone ? `<span>${esc(phone)}</span>` : ''}${li}</div>
+          </div>
+          <button class="btn-save" onclick="lgAddApolloContact('${esc(leadId)}', ${idx})" style="font-size:11px;padding:5px 10px;flex-shrink:0">Add as Contact</button>
+        </div>`;
+      }).join('');
+}
+
+async function lgAddApolloContact(leadId, idx) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  const p = (_lgApolloPeople[leadId] || [])[idx];
+  if (!p) return;
+
+  const firstName = p.first_name || (p.name || '').split(' ')[0] || '';
+  const lastName  = p.last_name  || (p.name || '').split(' ').slice(1).join(' ') || '';
+  const phone     = p.phone_numbers?.[0]?.sanitized_number || '';
+  const email     = (p.email && !p.email.includes('*')) ? p.email : '';
+  const now = new Date().toISOString();
+
+  const hasPrimary = l.firstName || l.lastName || l.contactName;
+  if (!hasPrimary) {
+    l.firstName = firstName; l.lastName = lastName;
+    l.contactName = [firstName, lastName].filter(Boolean).join(' ');
+    if (phone && !l.phone) l.phone = phone;
+    if (email && !l.email) l.email = email;
+    toast(`${p.name || 'Contact'} added as primary contact`);
+  } else if (!l.sc2FirstName && !l.sc2LastName) {
+    l.sc2FirstName = firstName; l.sc2LastName = lastName;
+    l.sc2Title = p.title || '';
+    if (phone) l.sc2Phone = phone;
+    if (email) l.sc2Email = email;
+    toast(`${p.name || 'Contact'} added as secondary contact`);
+  } else {
+    toast('Both contact fields are filled — edit the record to add more', 'warn');
+    return;
+  }
+
+  l.updatedAt = now;
+  l.lastActivityDate = today();
+  await saveData();
+
+  // Re-render lead profile with updated data (this resets the apollo panel)
+  openLeadProfile(leadId);
+
+  // Prompt for follow-up task
+  _lgPromptFollowup(leadId, p.name || [firstName, lastName].filter(Boolean).join(' '));
+}
+
+function _lgPromptFollowup(leadId, contactName) {
+  const el = document.getElementById(`apollo-results-${leadId}`);
+  if (!el) return;
+  const promptId = `lg-followup-${leadId}`;
+  if (document.getElementById(promptId)) return;
+
+  const div = document.createElement('div');
+  div.id = promptId;
+  div.style.cssText = 'background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:13px';
+  div.innerHTML = `<strong>Create a follow-up task for ${esc(contactName)}?</strong>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-save" onclick="lgCreateFollowup('${esc(leadId)}', '${esc(contactName)}'); document.getElementById('${promptId}')?.remove()" style="font-size:12px;padding:4px 12px">Yes, create task</button>
+      <button class="btn-cancel" onclick="document.getElementById('${promptId}')?.remove()" style="font-size:12px;padding:4px 12px">No thanks</button>
+    </div>`;
+  if (el.parentElement) el.parentElement.insertBefore(div, el);
+}
+
+function lgCreateFollowup(leadId, contactName) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  openTaskModal(null, {
+    title: `Follow up with ${contactName} at ${l.companyName}`,
+    linkedType: 'lead',
+    linkedId: leadId,
+    linkedName: l.companyName,
+  });
+}
+
+// ── Dashboard widget ─────────────────────────────────────────────────────────────
+
+function renderDashLeadGen() {
+  const el = document.getElementById('dash-leadgen-stats');
+  if (!el) return;
+  const cfg = lgCfg();
+
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const newThisWeek = appState.leads.filter(l => l.leadSource === 'lead_finder_maps' && l.createdAt && new Date(l.createdAt).getTime() > weekAgo).length;
+  const totalFromFinder = appState.leads.filter(l => l.leadSource === 'lead_finder_maps').length;
+  const apolloUsed = cfg.apolloSearchesThisMonth || 0;
+  const lastSearch = (cfg.searchHistory || [])[0];
+  const lastStr = lastSearch ? (() => {
+    const d = new Date(lastSearch.date);
+    const zipStr = (lastSearch.zips || []).slice(0, 3).join(', ') + (lastSearch.zips?.length > 3 ? ' +more' : '');
+    return `${d.getMonth() + 1}/${d.getDate()} — ${zipStr || '?'}`;
+  })() : 'Never';
+
+  el.innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+      <div style="text-align:center;min-width:70px">
+        <div style="font-size:26px;font-weight:700;color:#1a3a7a">${newThisWeek}</div>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px">New This Week</div>
+      </div>
+      <div style="text-align:center;min-width:70px">
+        <div style="font-size:26px;font-weight:700;color:#555">${totalFromFinder}</div>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px">Total from Finder</div>
+      </div>
+      <div style="text-align:center;min-width:70px">
+        <div style="font-size:26px;font-weight:700;color:#555">${apolloUsed}</div>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px">Apollo Searches</div>
+      </div>
+      <div style="flex:1;font-size:13px;color:#555;padding-top:4px;min-width:180px">
+        <div><strong>Last search:</strong> ${esc(lastStr)}</div>
+        <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">
+          <span>${cfg.mapsKeyValid === true ? '<span style="color:#2e7d32;font-size:12px">● Google Maps connected</span>' : '<span style="color:#c62828;font-size:12px">● Google Maps not set up</span>'}</span>
+          <span>${cfg.apolloKeyValid === true ? '<span style="color:#2e7d32;font-size:12px">● Apollo.io connected</span>' : '<span style="color:#c62828;font-size:12px">● Apollo.io not set up</span>'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function initLeadGen() {
+  renderLeadGenSettings();
+  renderDashLeadGen();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STARTUP & SYSTEM SETTINGS
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SYS_DEFAULTS = { autoLaunch: false, startMinimized: false, closeToTray: true, startupNotification: false };
+
+function sysCfg() {
+  return Object.assign({}, SYS_DEFAULTS, appState.settings?.system || {});
+}
+
+async function initSystemSettings() {
+  const cfg = sysCfg();
+
+  // Tell main process the current closeToTray preference
+  await window.aflAPI.setCloseToTray(cfg.closeToTray);
+
+  // Read actual OS auto-launch state to keep in sync with registry
+  const alResult = await window.aflAPI.getAutoLaunch();
+  const alActual = alResult.ok ? alResult.enabled : cfg.autoLaunch;
+  if (alActual !== cfg.autoLaunch) {
+    appState.settings.system = Object.assign({}, cfg, { autoLaunch: alActual });
+    await saveData();
+  }
+
+  // Populate toggle UI
+  const elAL = document.getElementById('sys-auto-launch');
+  const elSM = document.getElementById('sys-start-minimized');
+  const elCT = document.getElementById('sys-close-to-tray');
+  const elSN = document.getElementById('sys-startup-notification');
+  if (elAL) elAL.checked = alActual;
+  if (elSM) elSM.checked = cfg.startMinimized;
+  if (elCT) elCT.checked = cfg.closeToTray;
+  if (elSN) elSN.checked = cfg.startupNotification;
+
+  // Wire tray "Back Up Now" menu item to the backup routine
+  window.aflAPI.onTrayBackup(() => runBackupNow({ silent: true }));
+
+  // Show startup notification if enabled
+  if (cfg.startupNotification) {
+    window.aflAPI.showNotification('AFL Sales Tracker', 'AFL Sales Tracker is running');
+  }
+}
+
+async function toggleAutoLaunch(enable) {
+  const result = await window.aflAPI.setAutoLaunch(enable);
+  if (!result.ok) {
+    toast('Could not update startup setting — ' + (result.error || 'unknown error'), 'error');
+    const el = document.getElementById('sys-auto-launch');
+    if (el) el.checked = !enable;
+    return;
+  }
+  appState.settings.system = Object.assign({}, sysCfg(), { autoLaunch: enable });
+  await saveData();
+  toast(enable ? 'App will launch on Windows startup' : 'Auto-launch on startup disabled');
+}
+
+async function toggleStartMinimized(enable) {
+  appState.settings.system = Object.assign({}, sysCfg(), { startMinimized: enable });
+  await saveData();
+  toast(enable ? 'Will start minimized to taskbar' : 'Will open the window on launch');
+}
+
+async function toggleCloseToTray(enable) {
+  await window.aflAPI.setCloseToTray(enable);
+  appState.settings.system = Object.assign({}, sysCfg(), { closeToTray: enable });
+  await saveData();
+  toast(enable ? 'Close button will hide to tray' : 'Close button will exit the app');
+}
+
+async function toggleStartupNotification(enable) {
+  appState.settings.system = Object.assign({}, sysCfg(), { startupNotification: enable });
+  await saveData();
+  toast(enable ? 'Startup notification enabled' : 'Startup notification disabled');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════════════════════
 (async () => {
@@ -7737,6 +8688,8 @@ async function showBackupSetupModal() {
   updateDocsCountBadge();
   await initGitBackup();
   await initBackup();
+  await initLeadGen();
+  await initSystemSettings();
 })();
 </script>
 </body>
