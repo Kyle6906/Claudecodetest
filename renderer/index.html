@@ -351,6 +351,12 @@ main {
 /* Leads tab */
 .leads-tab-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .leads-tab-header .list-title { flex:1; }
+.import-dropdown-wrap { position:relative; }
+.import-dropdown-menu { display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:200; min-width:200px; padding:4px 0; }
+.import-dropdown-menu.open { display:block; }
+.import-dropdown-item { display:flex; align-items:center; gap:8px; padding:9px 16px; font-size:13px; cursor:pointer; white-space:nowrap; color:#333; }
+.import-dropdown-item:hover { background:#f5f5f5; }
+.import-dropdown-divider { border-top:1px solid #eee; margin:4px 0; }
 .leads-filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
 .leads-filter-row .search-input { flex:1; min-width:180px; }
 .leads-filter-row select, .leads-filter-row .filter-input { height:36px; font-size:13px; border:1px solid #ddd; border-radius:6px; padding:0 10px; background:#fff; }
@@ -363,6 +369,58 @@ main {
 .badge.paid { background: #e8f5e9; color: #2e7d32; }
 .badge.pending { background: #fff3e0; color: #e65100; }
 .badge.converted { background: #e8f5e9; color: #2e7d32; }
+/* Fleet priority & territory */
+.badge.priority-high   { background:#fce4e4; color:#c62828; }
+.badge.priority-medium { background:#fff8e1; color:#e65100; }
+.badge.priority-low    { background:#e8f5e9; color:#2e7d32; }
+.badge.outside-territory { background:#f3e5f5; color:#6a1b9a; font-size:10px; }
+.badge.replacement-opp { background:#fce4e4; color:#c62828; }
+.badge.aging-fleet     { background:#fff8e1; color:#e65100; }
+/* Fleet panel in lead profile */
+.fleet-panel { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:16px; margin-bottom:14px; }
+.fleet-table { width:100%; border-collapse:collapse; font-size:13px; }
+.fleet-table th { background:#f5f5f5; padding:7px 10px; text-align:left; font-size:11px; color:#555; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #e0e0e0; cursor:pointer; user-select:none; }
+.fleet-table th:hover { background:#eef0f5; }
+.fleet-table td { padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+.fleet-table tr:hover td { background:#fafafa; }
+.fleet-table tr:last-child td { border-bottom:none; }
+/* Fleet Intelligence dashboard widget */
+.fleet-widget-stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+.fleet-stat-pill { display:flex; flex-direction:column; align-items:center; background:#f5f5f5; border-radius:8px; padding:10px 20px; min-width:80px; }
+.fleet-stat-pill .fsn { font-size:26px; font-weight:700; line-height:1; }
+.fleet-stat-pill .fsl { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:.4px; margin-top:4px; text-align:center; }
+/* Quote fleet sidebar */
+.q-fleet-sidebar { background:#f9f9ff; border:1px solid #d0d8f5; border-radius:8px; padding:12px 14px; margin-bottom:14px; }
+.q-fleet-sidebar-title { font-size:13px; font-weight:700; color:#1a3a7a; margin-bottom:8px; }
+.q-fleet-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #eef0f8; flex-wrap:wrap; }
+.q-fleet-row:last-child { border-bottom:none; }
+/* ── Fleet Search Panel ──────────────────────────────────────────────────── */
+.fleet-search-overlay { position:fixed; inset:0; z-index:8500; display:none; }
+.fleet-search-overlay.open { display:flex; }
+.fleet-search-panel { background:#f5f5f5; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+.fs-header { background:#1a1a1a; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 20px; height:52px; flex-shrink:0; gap:10px; }
+.fs-header-title { font-size:16px; font-weight:700; color:#fff; white-space:nowrap; }
+.fs-saved-bar { background:#fff; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; gap:10px; padding:8px 20px; flex-shrink:0; min-height:42px; }
+.fs-saved-chip { background:#e8eef8; border:1px solid #c5d3f5; border-radius:16px; padding:3px 10px; font-size:12px; font-weight:600; color:#1a3a7a; cursor:pointer; display:inline-flex; align-items:center; gap:2px; white-space:nowrap; }
+.fs-saved-chip:hover { background:#d0dbf5; }
+.fs-body { display:flex; flex:1; overflow:hidden; }
+.fs-filters { width:270px; min-width:270px; background:#fff; border-right:1px solid #e0e0e0; overflow-y:auto; padding:16px; display:flex; flex-direction:column; }
+.fs-filter-section-title { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.6px; margin-bottom:14px; }
+.fs-filter-group { margin-bottom:13px; }
+.fs-filter-label { display:block; font-size:12px; font-weight:600; color:#444; margin-bottom:5px; }
+.fs-results-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.fs-results-topbar { background:#fff; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between; padding:10px 20px; flex-shrink:0; flex-wrap:wrap; gap:8px; }
+.fs-results-list { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.fs-result-card { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.05); transition:box-shadow .15s,border-color .15s; }
+.fs-result-card:hover { box-shadow:0 3px 10px rgba(0,0,0,.1); border-color:#c5d3f5; }
+.fs-result-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:8px; }
+.fs-company-name { font-size:15px; font-weight:700; color:#1a1a1a; }
+.fs-company-meta { font-size:12px; color:#888; margin-top:2px; }
+.fs-result-details { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:10px; }
+.fs-detail-item { display:flex; flex-direction:column; gap:1px; }
+.fs-detail-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#aaa; }
+.fs-detail-val { font-size:13px; color:#333; }
+.fs-result-actions { display:flex; gap:8px; flex-wrap:wrap; }
 /* ── Territory view ─────────────────────────────────────────────────────── */
 .territory-row-untapped td { color: #bbb; }
 .territory-row-untapped td:first-child { color: #ccc; font-weight: 600; }
@@ -747,6 +805,7 @@ main {
 .toast.success { background: #2e7d32; }
 .toast.error { background: #c62828; }
 .toast.warn { background: #e65100; }
+.toast.info { background: #1565c0; }
 @keyframes slideIn {
   from { transform: translateX(40px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
@@ -1124,6 +1183,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <button class="tab-btn" data-tab="settings">Settings</button>
   </nav>
   <div class="header-actions">
+    <button class="btn-icon" onclick="openFleetSearch()" style="white-space:nowrap;background:#1b5e20;color:#fff;border:1px solid #2e7d32;font-size:13px;font-weight:700">🔍 Fleet Search</button>
     <button class="btn-icon" id="btn-upload-doc-global" style="white-space:nowrap;background:#f0f4ff;color:#1a3a7a;border:1px solid #c5d3f5;font-size:12px">📎 Upload Doc</button>
     <button class="btn-import" id="btn-import">&#8593; Import Excel</button>
   </div>
@@ -1299,6 +1359,10 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       </div>
       <div id="dash-leadgen-stats"><span style="color:#aaa;font-size:13px">Loading...</span></div>
     </div>
+    <div class="card dash-grid-full" id="dash-fleet-widget">
+      <div class="section-title">Fleet Intelligence</div>
+      <div style="color:#aaa;font-size:13px;padding:8px 0">No fleet data yet — import your UIO list to get started.</div>
+    </div>
     <div class="card dash-grid-full">
       <div class="section-title">Monthly Breakdown (<span id="ytd-year"></span>)</div>
       <table class="data-table">
@@ -1473,9 +1537,17 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       </div>
       <button class="btn-save" id="btn-find-new-leads" onclick="openFindLeadsModal()" style="white-space:nowrap;background:#1a3a7a;font-size:13px">&#128270; Find New Leads</button>
       <button class="btn-icon" id="btn-lead-finder" style="white-space:nowrap;background:#e8eef8;color:#1a3a7a;border:1px solid #c5d3f5">Territory Filter</button>
-      <button class="btn-icon" id="btn-import-leads" style="white-space:nowrap;background:#fce4ec;color:#880e4f;border:1px solid #f8bbd0">Import Potential Customers</button>
       <button class="btn-add" id="btn-add-lead">+ New Contact</button>
       <button class="btn-icon" id="btn-export-leads" style="white-space:nowrap">Export Excel</button>
+      <div class="import-dropdown-wrap">
+        <button class="btn-icon" id="btn-import-dropdown-trigger" style="white-space:nowrap">Import &#9660;</button>
+        <div class="import-dropdown-menu" id="import-dropdown-menu">
+          <div class="import-dropdown-item" id="btn-import-leads">&#128100; Import Potential Customers</div>
+          <div class="import-dropdown-divider"></div>
+          <div class="import-dropdown-item" id="btn-import-uio" onclick="closeImportDropdown();importUIOFleet()">&#128229; Import UIO / Fleet</div>
+          <div class="import-dropdown-item" id="btn-import-aging" onclick="closeImportDropdown();importAgingReport()">&#128203; Import Aging Report</div>
+        </div>
+      </div>
     </div>
 
     <!-- Lead Finder panel (collapsed by default) -->
@@ -1545,10 +1617,26 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <option value="trade_show">Trade Show</option>
         <option value="linkedin">LinkedIn</option>
         <option value="imported_list">Imported List</option>
+        <option value="uio_import">UIO Import</option>
+        <option value="aging_report_import">Aging Report</option>
         <option value="other">Other</option>
       </select>
       <input class="filter-input" id="leads-filter-zip" type="text" placeholder="Zip" style="width:80px">
       <input class="filter-input" id="leads-filter-rep" type="text" placeholder="Salesperson" style="width:130px">
+      <select class="filter-input" id="leads-filter-facility">
+        <option value="">All Sizes</option>
+        <option value="small">Small</option>
+        <option value="medium">Medium</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Very Large</option>
+      </select>
+      <select class="filter-input" id="leads-filter-fleet">
+        <option value="">All Fleet</option>
+        <option value="replacement_opp">🔴 Replacement Opportunities</option>
+        <option value="aging_fleet">🟡 Aging Fleet (7–10 yrs)</option>
+        <option value="has_fleet">Has Fleet Data</option>
+        <option value="review_needed">⚠ Review Needed</option>
+      </select>
     </div>
     <div id="leads-list-view">
       <div class="cust-table-wrap">
@@ -1559,10 +1647,10 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
               <th data-lcol="contactName">Contact <span class="sort-arrow">↕</span></th>
               <th data-lcol="phone">Phone <span class="sort-arrow">↕</span></th>
               <th data-lcol="zip">Zip <span class="sort-arrow">↕</span></th>
-              <th data-lcol="industry">Industry <span class="sort-arrow">↕</span></th>
+              <th data-lcol="county">County <span class="sort-arrow">↕</span></th>
+              <th data-lcol="fleetSize">Fleet <span class="sort-arrow">↕</span></th>
               <th data-lcol="status">Status <span class="sort-arrow">↕</span></th>
               <th data-lcol="leadSource">Source <span class="sort-arrow">↕</span></th>
-              <th data-lcol="salesperson">Assigned To <span class="sort-arrow">↕</span></th>
               <th data-lcol="lastActivityDate">Last Activity <span class="sort-arrow">↕</span></th>
               <th>Actions</th>
             </tr>
@@ -1718,10 +1806,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input class="form-input" id="maps-api-key-input" type="password" placeholder="AIzaSy..." style="flex:1;min-width:220px;font-family:monospace;font-size:13px">
           <button class="btn-save" onclick="saveLeadGenKey('maps')" style="font-size:13px;padding:8px 16px">Save &amp; Test</button>
+          <button class="btn-icon" onclick="runMapsRawTest()" style="font-size:13px;padding:7px 12px">Debug →</button>
         </div>
-        <div style="margin-top:6px">
+        <div style="margin-top:6px;display:flex;gap:12px;align-items:center">
           <a href="#" onclick="showApiKeyHelp('maps');return false" style="font-size:12px;color:#1565c0">How to get this key ▸</a>
+          <span style="font-size:11px;color:#aaa">Debug shows the raw Google API response</span>
         </div>
+        <div id="maps-raw-result" style="display:none;margin-top:10px;background:#1a1a1a;color:#e0e0e0;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.5"></div>
         <div class="api-key-help-panel" id="maps-key-help" style="display:none">
           <strong>Google Maps Platform (Places API + Geocoding API)</strong>
           <ol>
@@ -1747,10 +1838,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input class="form-input" id="apollo-api-key-input" type="password" placeholder="your-apollo-api-key" style="flex:1;min-width:220px;font-family:monospace;font-size:13px">
           <button class="btn-save" onclick="saveLeadGenKey('apollo')" style="font-size:13px;padding:8px 16px">Save &amp; Test</button>
+          <button class="btn-icon" onclick="runApolloRawTest()" style="font-size:13px;padding:7px 12px">Debug →</button>
         </div>
-        <div style="margin-top:6px">
+        <div style="margin-top:6px;display:flex;gap:12px;align-items:center">
           <a href="#" onclick="showApiKeyHelp('apollo');return false" style="font-size:12px;color:#1565c0">How to get this key ▸</a>
+          <span style="font-size:11px;color:#aaa">Debug shows the raw Apollo API response</span>
         </div>
+        <div id="apollo-raw-result" style="display:none;margin-top:10px;background:#1a1a1a;color:#e0e0e0;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.5"></div>
         <div class="api-key-help-panel" id="apollo-key-help" style="display:none">
           <strong>Apollo.io API Key (free tier available)</strong>
           <ol>
@@ -1783,6 +1877,233 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
   </section>
 
 </main>
+
+<!-- ── Fleet Search Full-Screen Panel ─────────────────────────────────────── -->
+<div id="overlay-fleet-search" class="fleet-search-overlay">
+  <div class="fleet-search-panel">
+
+    <!-- Header bar -->
+    <div class="fs-header">
+      <div class="fs-header-title">🔍 Fleet Search</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn-save" style="background:#e65100;border-color:#e65100;font-size:13px;white-space:nowrap" onclick="fsQuickProspect()">⚡ Quick Prospect</button>
+        <button class="btn-icon" style="font-size:12px;color:#fff;border-color:#555;background:rgba(255,255,255,.1);white-space:nowrap" onclick="fsSaveSearch()">💾 Save Search</button>
+        <button class="btn-icon" style="font-size:12px;color:#fff;border-color:#555;background:rgba(255,255,255,.1);white-space:nowrap" onclick="fsPrint()">🖨 Print</button>
+        <button class="btn-icon" style="font-size:12px;color:#fff;border-color:#555;background:rgba(255,255,255,.1);white-space:nowrap" onclick="fsExportExcel()">📥 Export Excel</button>
+        <button class="btn-icon" style="font-size:12px;color:#ffcc00;border-color:#888;background:rgba(255,255,255,.08);white-space:nowrap" onclick="fsShowRawData()" title="Debug: show raw fleet store contents">🔬 Show Raw Data</button>
+        <button onclick="closeFleetSearch()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#aaa;line-height:1;padding:0 4px" title="Close">×</button>
+      </div>
+    </div>
+
+    <!-- Saved search chips -->
+    <div class="fs-saved-bar">
+      <span style="font-size:12px;font-weight:700;color:#555;white-space:nowrap;flex-shrink:0">Saved:</span>
+      <div id="fs-saved-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;align-items:center">
+        <span style="font-size:12px;color:#bbb">No saved searches yet</span>
+      </div>
+    </div>
+
+    <!-- Main body: sidebar + results -->
+    <div class="fs-body">
+
+      <!-- Filters sidebar -->
+      <div class="fs-filters">
+        <div class="fs-filter-section-title">Filters</div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Zip Code(s)</label>
+          <input class="form-input" id="fs-zip" type="text" placeholder="30101, 30144…" style="font-size:13px;margin-bottom:5px">
+          <button class="btn-icon" style="font-size:12px;width:100%" onclick="fsMyTerritory()">📍 Load My Territory (27 zips)</button>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">City</label>
+          <input class="form-input" id="fs-city" type="text" placeholder="Kennesaw, Marietta…" style="font-size:13px">
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">County</label>
+          <select class="form-select" id="fs-county" style="font-size:13px">
+            <option value="">All Counties</option>
+          </select>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Purchased Before <span style="font-size:10px;color:#aaa">(UIO only)</span></label>
+          <input class="form-input" id="fs-purchased-before" type="date" style="font-size:13px">
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Purchased After <span style="font-size:10px;color:#aaa">(UIO only)</span></label>
+          <input class="form-input" id="fs-purchased-after" type="date" style="font-size:13px">
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Model <span style="font-size:10px;color:#aaa">(UIO only)</span></label>
+          <select class="form-select" id="fs-model" style="font-size:13px">
+            <option value="">All Models</option>
+          </select>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Minimum Unit Age</label>
+          <select class="form-select" id="fs-age" style="font-size:13px">
+            <option value="">Any Age</option>
+            <option value="5">5+ Years</option>
+            <option value="7">7+ Years</option>
+            <option value="10">10+ Years</option>
+            <option value="15">15+ Years</option>
+          </select>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Last Order Age</label>
+          <select class="form-select" id="fs-last-order" style="font-size:13px">
+            <option value="">Any</option>
+            <option value="5">5+ Years Ago</option>
+            <option value="10">10+ Years Ago</option>
+            <option value="15">15+ Years Ago</option>
+            <option value="20">20+ Years Ago</option>
+          </select>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Replacement Priority</label>
+          <select class="form-select" id="fs-priority" style="font-size:13px">
+            <option value="">All Priorities</option>
+            <option value="high">🔴 High (10+ years)</option>
+            <option value="medium">🟡 Medium (7–10 years)</option>
+            <option value="low">🟢 Low (under 7 years)</option>
+          </select>
+        </div>
+
+        <div class="fs-filter-group">
+          <label class="fs-filter-label">Min. Fleet Size</label>
+          <select class="form-select" id="fs-min-units" style="font-size:13px">
+            <option value="">Any</option>
+            <option value="2">2+ Units</option>
+            <option value="5">5+ Units</option>
+            <option value="10">10+ Units</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn-save" style="flex:1;font-size:13px" onclick="runFleetSearch()">Search</button>
+          <button class="btn-cancel" style="font-size:13px" onclick="fsClearFilters()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Results panel -->
+      <div class="fs-results-panel">
+        <div class="fs-results-topbar">
+          <span id="fs-result-count" style="font-size:14px;font-weight:700;color:#333">Enter filters and click Search</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:12px;color:#666;white-space:nowrap">Sort by:</label>
+            <select class="form-select" id="fs-sort" style="font-size:13px;height:34px" onchange="runFleetSearch()">
+              <option value="urgency">⚡ Most Urgent First</option>
+              <option value="oldest">Oldest Fleet First</option>
+              <option value="most-units">Most Units First</option>
+              <option value="name">Company Name</option>
+              <option value="zip">Zip Code</option>
+            </select>
+          </div>
+        </div>
+        <div id="fs-results" class="fs-results-list">
+          <div style="text-align:center;padding:60px 24px;color:#aaa">
+            <div style="font-size:48px;margin-bottom:12px">🔍</div>
+            <div style="font-size:15px;margin-bottom:8px">Set your filters and click <b>Search</b></div>
+            <div style="font-size:13px">Or click <b>⚡ Quick Prospect</b> to instantly see your best replacement opportunities</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Import UIO / Fleet Data ────────────────────────────────────── -->
+<div class="modal-overlay" id="overlay-uio-import">
+  <div class="modal modal-lg">
+    <div class="modal-title">Import UIO / Fleet Data</div>
+    <p style="font-size:13px;color:#666;margin:0 0 12px">Expected columns: <b>Model, Serial number, Company, Address, City, Zip code, State, Date of purchase</b></p>
+    <div id="modal-uio-body" style="min-height:160px"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-uio-import').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="confirmUIOImport()">✔ Confirm Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Add Fleet Unit ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="overlay-add-fleet-unit">
+  <div class="modal">
+    <div class="modal-title">Add Fleet Unit</div>
+    <input type="hidden" id="add-fleet-lead-id">
+    <input type="hidden" id="add-fleet-company">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">OEM</label>
+        <input class="form-input" id="add-fleet-oem" type="text" value="Toyota" placeholder="Toyota">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Model <span style="color:#c62828">*</span></label>
+        <input class="form-input" id="add-fleet-model" type="text" placeholder="e.g. 8FGU25">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Serial Number</label>
+      <input class="form-input" id="add-fleet-serial" type="text" placeholder="e.g. 8FGU25-12345">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">City</label>
+        <input class="form-input" id="add-fleet-city" type="text" placeholder="Atlanta">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Zip</label>
+        <input class="form-input" id="add-fleet-zip" type="text" placeholder="30101" maxlength="10">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date of Purchase</label>
+      <input class="form-input" id="add-fleet-dop" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes <span class="optional">(optional)</span></label>
+      <textarea class="form-textarea" id="add-fleet-notes" rows="2" placeholder="Condition, service notes…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-add-fleet-unit').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="saveAddFleetUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Aging Report Import Preview ──────────────────────────────── -->
+<div class="modal-overlay" id="overlay-aging-import">
+  <div class="modal modal-lg">
+    <div class="modal-title">📋 Import Aging Report</div>
+    <p style="font-size:13px;color:#666;margin:0 0 12px">Columns: <b>Customer, DUNS Company Name, Zip Code, County, Address, City, State, Primary Phone, Retail Orders, Months Since Last Order</b></p>
+    <div id="modal-aging-body" style="min-height:160px"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-aging-import').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="confirmAgingReportImport()">✔ Run Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Aging Report Fuzzy Match Review ──────────────────────────── -->
+<div class="modal-overlay" id="overlay-aging-review">
+  <div class="modal modal-lg" style="max-width:860px">
+    <div class="modal-title">⚠ Review Fuzzy Matches</div>
+    <p style="font-size:13px;color:#666;margin:0 0 12px">These records were updated as fuzzy matches. Confirm each match or create a separate record.</p>
+    <div id="modal-aging-review-body" style="min-height:160px;max-height:55vh;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <div id="aging-review-remaining" style="font-size:13px;color:#888;flex:1"></div>
+      <button class="btn-cancel" onclick="document.getElementById('overlay-aging-review').classList.remove('open')">Close (review later via ⚠ Review Needed filter)</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Modal: Backup & Recovery ──────────────────────────────────────────── -->
 <div class="modal-overlay" id="overlay-backup">
@@ -2044,6 +2365,18 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <input class="form-input" id="l-salesperson" type="text" placeholder="Salesperson name">
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="l-facility-size">Facility Size Estimate <span class="optional">(optional)</span></label>
+        <select class="form-select" id="l-facility-size">
+          <option value="">Unknown</option>
+          <option value="small">Small (under 10,000 sq ft)</option>
+          <option value="medium">Medium (10,000 – 50,000 sq ft)</option>
+          <option value="large">Large (50,000 – 200,000 sq ft)</option>
+          <option value="xlarge">Very Large (200,000+ sq ft)</option>
+        </select>
+      </div>
+    </div>
     <div style="border-top:1px solid #e8e8e8;margin:10px 0 8px;padding-top:10px">
       <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px">Secondary Contact <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
       <div class="form-row">
@@ -2094,10 +2427,32 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div style="flex:1;overflow-y:auto;padding:12px 24px" id="find-leads-results">
       <div style="text-align:center;padding:40px;color:#aaa;font-size:14px">Select zip codes and industry types, then click Search.</div>
     </div>
-    <div style="padding:10px 24px;background:#f9f9f9;border-top:1px solid #e0e0e0;flex-shrink:0">
-      <div style="font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Recent Searches</div>
-      <div id="find-leads-history"><span style="color:#aaa;font-size:12px">No searches yet.</span></div>
+  </div>
+</div>
+
+<!-- ── Modal: Satellite Preview (Lead Finder quick preview) ─────────────── -->
+<div class="modal-overlay" id="overlay-sat-preview" onclick="if(event.target===this)closeSatPreview()">
+  <div class="modal" style="max-width:660px;padding:0;overflow:hidden">
+    <div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a1a1a" id="sat-preview-title"></div>
+        <div style="font-size:12px;color:#888;margin-top:2px" id="sat-preview-addr"></div>
+      </div>
+      <button onclick="closeSatPreview()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;padding:0 4px">×</button>
     </div>
+    <div id="sat-preview-img-container" style="padding:12px;min-height:120px"></div>
+    <div style="padding:10px 18px 14px;border-top:1px solid #f0f0f0;display:flex;gap:8px;flex-wrap:wrap" id="sat-preview-actions"></div>
+  </div>
+</div>
+
+<!-- ── Modal: Interactive Map Embed ──────────────────────────────────────── -->
+<div class="modal-overlay" id="overlay-map-embed" onclick="if(event.target===this)closeMapEmbed()">
+  <div style="background:#fff;border-radius:8px;width:90vw;max-width:920px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0;flex-shrink:0">
+      <div style="font-size:15px;font-weight:700;color:#1a1a1a" id="map-embed-title">Satellite Map</div>
+      <button onclick="closeMapEmbed()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;line-height:1;padding:0 4px">×</button>
+    </div>
+    <iframe id="map-embed-frame" style="flex:1;border:none;min-height:520px" src="" allowfullscreen loading="lazy"></iframe>
   </div>
 </div>
 
@@ -2173,7 +2528,12 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
           <label class="form-label" for="q-fleet">Fleet Size <span class="optional">(# of lifts)</span></label>
           <input class="form-input" id="q-fleet" type="number" placeholder="0" min="0">
         </div>
-        <div class="form-group"></div>
+        <div class="form-group">
+          <label class="form-label" for="q-replacing-unit">Replacing Unit <span class="optional">(from fleet)</span></label>
+          <select class="form-select" id="q-replacing-unit">
+            <option value="">— None —</option>
+          </select>
+        </div>
       </div>
       <div class="form-group last-purchase-wrap" id="q-last-purchase-wrap">
         <label class="form-label" for="q-last-purchase">Last Purchase Date</label>
@@ -2195,6 +2555,10 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         </div>
         <div class="form-group"><label class="form-label" for="q-sc-email">Email</label><input class="form-input" id="q-sc-email" type="email" placeholder="contact2@company.com"></div>
       </div>
+    </div>
+    <div class="q-fleet-sidebar" id="q-fleet-sidebar" style="display:none">
+      <div class="q-fleet-sidebar-title">🚜 Fleet on File</div>
+      <div id="q-fleet-list"></div>
     </div>
     <div class="form-group">
       <label class="form-label">
@@ -2780,9 +3144,9 @@ const IMPORT_FIELDS = [
 // ══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════════
-const DEFAULT_TERRITORY_ZIPS = ['30101','30102','30107','30111','30114','30115','30120','30121','30132','30137','30142','30144','30145','30146','30151','30152','30156','30157','30169','30171','30178','30183','30184','30188','30189','30339'];
+const DEFAULT_TERRITORY_ZIPS = ['30101','30102','30103','30107','30111','30114','30115','30120','30121','30132','30137','30142','30144','30145','30146','30151','30152','30156','30157','30169','30171','30178','30183','30184','30188','30189','30339'];
 const TERRITORY_ZIP_CITIES = {
-  '30101':'Acworth','30102':'Acworth','30107':'Ball Ground','30111':'Clarkdale',
+  '30101':'Acworth','30102':'Acworth','30103':'Acworth','30107':'Ball Ground','30111':'Clarkdale',
   '30114':'Canton','30115':'Canton','30120':'Cartersville','30121':'Cartersville',
   '30132':'Dallas','30137':'Emerson','30142':'Holly Springs','30144':'Kennesaw',
   '30145':'Kingston','30146':'Lebanon','30151':'Nelson','30152':'Marietta',
@@ -2832,7 +3196,13 @@ async function loadData() {
       if (!appState.leads) appState.leads = [];
       if (!appState.settings) appState.settings = { territoryZips: [...DEFAULT_TERRITORY_ZIPS] };
       if (!appState.settings.territoryZips) appState.settings.territoryZips = [...DEFAULT_TERRITORY_ZIPS];
+      // Migrate: add 30103 if missing from stored territory zips
+      if (!appState.settings.territoryZips.includes('30103')) {
+        appState.settings.territoryZips.push('30103');
+        appState.settings.territoryZips.sort();
+      }
       if (!appState.documents) appState.documents = [];
+      if (!appState.equipment) appState.equipment = [];
       // Backfill stage for old quotes
       for (const q of appState.quotes) { if (!q.stage) q.stage = 'quoted'; }
       // Migrate old customer records (name → companyName + id)
@@ -3380,6 +3750,9 @@ function renderDashboard() {
 
   // Lead Gen widget
   renderDashLeadGen();
+
+  // Fleet Intelligence widget
+  renderFleetWidget();
 }
 
 function buildCustStats() {
@@ -3613,8 +3986,10 @@ function openQuoteModal(id = null) {
     addQuoteLineItem();
   }
 
+  document.getElementById('q-replacing-unit').value = q ? (q.replacingUnitId || '') : '';
   document.getElementById('overlay-quote').classList.add('open');
   document.getElementById('q-name').focus();
+  updateQuoteFleetPanel();
 }
 
 function saveQuote() {
@@ -3641,6 +4016,7 @@ function saveQuote() {
     followUpDate: document.getElementById('q-followup-date').value || null,
     stage: newStage,
     lossReason: newStage === 'lost' ? document.getElementById('q-loss-reason').value : null,
+    replacingUnitId: document.getElementById('q-replacing-unit')?.value || null,
   };
   const prevStage = editingQuoteId ? (appState.quotes.find(x => x.id === editingQuoteId)?.stage || 'quoted') : null;
   if (editingQuoteId) {
@@ -4216,6 +4592,14 @@ async function doImport() {
     mapping[field.key] = Number(document.getElementById(`map-${field.key}`).value);
   }
 
+  // Guard: sales import requires a Sale Price column to be mapped.
+  // Prevents accidentally importing Aging Report / UIO data as sales records.
+  if (importAs === 'sales' && mapping.salePrice < 0) {
+    document.getElementById('import-result-msg').style.display = 'block';
+    document.getElementById('import-result-msg').textContent = '⚠ Cannot import as Sales: no Sale Price column is mapped. Map a Sale Price column or switch to Quotes.';
+    return;
+  }
+
   const getCol = (row, idx) => (idx >= 0 && idx < row.length) ? String(row[idx] ?? '').trim() : '';
 
   const normDate = (val) => {
@@ -4754,6 +5138,7 @@ function selectCustomerForQuote(c) {
   document.getElementById('q-state').value  = c.state  || '';
   document.getElementById('q-zip').value    = c.zip    || '';
   if (c.notes) document.getElementById('q-cust-notes').value = c.notes;
+  updateQuoteFleetPanel();
 }
 
 function openQuoteModalForCustomer(customerId) {
@@ -5226,7 +5611,7 @@ const LEAD_STATUS_LABELS = {
   customer_record:'Customer Record', quote_auto:'Auto (Quote)', sale_auto:'Auto (Sale)',
 };
 const LEAD_INDUSTRY_LABELS = { warehouse:'Warehouse', manufacturing:'Manufacturing', distribution:'Distribution', food_beverage:'Food & Beverage', construction:'Construction', automotive:'Automotive', retail:'Retail', other:'Other' };
-const LEAD_SOURCE_LABELS = { territory_prospecting:'Territory Prospecting', cold_call:'Cold Call', google_search:'Google Search', referral:'Referral', trade_show:'Trade Show', linkedin:'LinkedIn', imported_list:'Imported List', quote_auto:'From Quote', sale_auto:'From Sale', customer_record:'Customer Record', other:'Other' };
+const LEAD_SOURCE_LABELS = { territory_prospecting:'Territory Prospecting', cold_call:'Cold Call', google_search:'Google Search', referral:'Referral', trade_show:'Trade Show', linkedin:'LinkedIn', imported_list:'Imported List', quote_auto:'From Quote', sale_auto:'From Sale', customer_record:'Customer Record', uio_import:'UIO Import', aging_report_import:'Aging Report Import', other:'Other' };
 
 function computeContactStatus(l) {
   const lid = l.id;
@@ -5348,11 +5733,18 @@ function renderLeadsList() {
   const srcF  = document.getElementById('leads-filter-source')?.value || '';
   const zipF  = (document.getElementById('leads-filter-zip')?.value || '').trim();
   const repF  = (document.getElementById('leads-filter-rep')?.value || '').toLowerCase().trim();
+  const fsF   = document.getElementById('leads-filter-facility')?.value || '';
+  const fleetF = document.getElementById('leads-filter-fleet')?.value || '';
 
   let leads = appState.leads.filter(l => {
     if (stF  && computeContactStatus(l) !== stF) return false;
     if (indF && l.industry !== indF) return false;
     if (srcF && l.leadSource !== srcF) return false;
+    if (fsF  && (l.facilitySize || '') !== fsF) return false;
+    if (fleetF === 'replacement_opp' && getLeadTopPriority(l.id) !== 'high') return false;
+    if (fleetF === 'aging_fleet' && !['high','medium'].includes(getLeadTopPriority(l.id))) return false;
+    if (fleetF === 'has_fleet' && !getLeadEquipment(l.id).length) return false;
+    if (fleetF === 'review_needed' && !l.agingReviewFlag) return false;
     if (leadsFinderZips !== null) {
       if (!leadsFinderZips.includes(l.zip || '')) return false;
     } else if (zipF && !(l.zip || '').startsWith(zipF)) return false;
@@ -5378,15 +5770,24 @@ function renderLeadsList() {
   tbody.innerHTML = leads.map(l => {
     const cs = computeContactStatus(l);
     const statusBadge = `<span class="badge lead-${cs}">${LEAD_STATUS_LABELS[cs] || cs}</span>`;
+    const topP = getLeadTopPriority(l.id);
+    const fleetBadge = topP === 'high'   ? `<span class="badge replacement-opp" style="font-size:10px;margin-left:4px" title="Replacement opportunity — unit(s) over 10 years old">⚠ Repl.</span>`
+                     : topP === 'medium' ? `<span class="badge aging-fleet" style="font-size:10px;margin-left:4px" title="Aging fleet — unit(s) 7–10 years old">Aging</span>`
+                     : '';
+    const outBadge    = l.outsideTerritory ? `<span class="badge outside-territory" style="margin-left:4px">Out of Territory</span>` : '';
+    const reviewBadge = l.agingReviewFlag  ? `<span class="badge" style="background:#fff8e1;color:#e65100;font-size:10px;margin-left:4px" title="Fuzzy matched during Aging Report import — click to review">⚠ Review</span>` : '';
+    const displayName = l.companyName || '—';
+    const dunsHint    = (l.duns && l.duns.toLowerCase().trim() !== (l.companyName||'').toLowerCase().trim()) ? `<span style="color:#888;font-size:11px;font-weight:400"> (${esc(l.duns)})</span>` : '';
+    const fleetSizeCell = l.fleetSize ? `<span style="font-weight:700;color:#1565c0">${l.fleetSize}</span>` : '—';
     return `<tr style="cursor:pointer" onclick="openLeadProfile('${l.id}')">
-      <td style="font-weight:700">${esc(l.companyName || '—')}</td>
+      <td style="font-weight:700">${esc(displayName)}${dunsHint}${fleetBadge}${outBadge}${reviewBadge}</td>
       <td>${esc(l.contactName || '—')}</td>
       <td>${esc(l.phone || '—')}</td>
       <td>${esc(l.zip || '—')}</td>
-      <td>${esc(LEAD_INDUSTRY_LABELS[l.industry] || l.industry || '—')}</td>
+      <td>${esc(l.county || '—')}</td>
+      <td>${fleetSizeCell}</td>
       <td>${statusBadge}</td>
       <td>${esc(LEAD_SOURCE_LABELS[l.leadSource] || l.leadSource || '—')}</td>
-      <td>${esc(l.salesperson || '—')}</td>
       <td>${l.lastActivityDate ? formatDate(l.lastActivityDate) : '—'}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
         <button class="btn-icon" onclick="openLeadModal('${l.id}')">Edit</button>
@@ -5558,7 +5959,8 @@ function openLeadModal(id = null) {
   document.getElementById('l-sc-lastname').value  = l ? (l.sc2LastName  || '') : '';
   document.getElementById('l-sc-title').value     = l ? (l.sc2Title     || '') : '';
   document.getElementById('l-sc-phone').value     = l ? (l.sc2Phone     || '') : '';
-  document.getElementById('l-sc-email').value     = l ? (l.sc2Email     || '') : '';
+  document.getElementById('l-sc-email').value      = l ? (l.sc2Email     || '') : '';
+  document.getElementById('l-facility-size').value = l ? (l.facilitySize || '') : '';
   document.getElementById('l-company').classList.remove('invalid');
   document.getElementById('overlay-lead').classList.add('open');
   document.getElementById('l-company').focus();
@@ -5588,6 +5990,7 @@ function _readLeadFormFields() {
     sc2Title:     document.getElementById('l-sc-title').value.trim(),
     sc2Phone:     document.getElementById('l-sc-phone').value.trim(),
     sc2Email:     document.getElementById('l-sc-email').value.trim(),
+    facilitySize: document.getElementById('l-facility-size').value,
   };
 }
 
@@ -5666,7 +6069,8 @@ function openLeadProfile(id) {
   if (!l) return;
 
   const cs = computeContactStatus(l);
-  document.getElementById('lead-profile-title').textContent = l.companyName;
+  const dunsDisplay = (l.duns && l.duns.toLowerCase().trim() !== (l.companyName||'').toLowerCase().trim()) ? ` (${l.duns})` : '';
+  document.getElementById('lead-profile-title').textContent = (l.companyName || '') + dunsDisplay;
   document.getElementById('start-quote-from-lead-btn').style.display = cs === 'inactive' ? 'none' : 'inline-flex';
 
   // Linked quotes
@@ -5727,13 +6131,27 @@ function openLeadProfile(id) {
       }).join('')
     : '<div style="color:#aaa;font-size:13px">No sales yet.</div>';
 
+  const reviewBannerHtml = l.agingReviewFlag ? `
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-weight:700;color:#e65100;margin-bottom:2px">⚠ Fuzzy Match — Review Needed</div>
+        <div style="font-size:13px;color:#555">This record was updated during an Aging Report import as a fuzzy match to <b>${esc(l.agingImportedAs || 'imported record')}</b>. Confirm this is the same company or create a separate record.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn-save" style="font-size:13px;background:#2e7d32" onclick="agingConfirmMatch('${l.id}')">✔ Confirm Match</button>
+        <button class="btn-icon" style="font-size:13px;color:#c62828;border-color:#f44336" onclick="agingCreateSeparate('${l.id}')">Create Separate Record</button>
+      </div>
+    </div>` : '';
+
   document.getElementById('lead-profile-body').innerHTML = `
+    ${reviewBannerHtml}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div>
         <div class="cust-info-label">Status</div>
         <div style="margin-top:4px"><span class="badge lead-${cs}" style="font-size:13px;padding:4px 10px">${LEAD_STATUS_LABELS[cs]||cs}</span></div>
         ${l.leadSource ? `<div class="cust-info-label" style="margin-top:10px">Source</div><div>${esc(LEAD_SOURCE_LABELS[l.leadSource]||l.leadSource)}</div>` : ''}
         ${l.industry   ? `<div class="cust-info-label" style="margin-top:10px">Industry</div><div>${esc(LEAD_INDUSTRY_LABELS[l.industry]||l.industry)}</div>` : ''}
+        ${l.county     ? `<div class="cust-info-label" style="margin-top:10px">County</div><div>${esc(l.county)}</div>` : ''}
         ${l.salesperson? `<div class="cust-info-label" style="margin-top:10px">Assigned To</div><div>${esc(l.salesperson)}</div>` : ''}
         ${l.createdAt  ? `<div class="cust-info-label" style="margin-top:10px">Added</div><div>${formatDate(l.createdAt.slice(0,10))}</div>` : ''}
       </div>
@@ -5742,8 +6160,12 @@ function openLeadProfile(id) {
         ${l.email      ? `<div class="cust-info-label" style="margin-top:8px">Email</div><div>${emailLink(l.email)}</div>` : ''}
         ${addr         ? `<div class="cust-info-label" style="margin-top:8px">Address</div><div style="white-space:pre-line">${esc(addr)}</div>` : ''}
         ${contactName  ? `<div class="cust-info-label" style="margin-top:8px">Contact Person</div><div>${esc(contactName)}</div>` : '<div class="cust-info-label" style="margin-top:8px;color:#bbb">No contact person — edit to add</div>'}
+        ${(l.fleetSize != null && l.fleetSize !== '') ? `<div class="cust-info-label" style="margin-top:8px">Fleet Size</div><div style="font-size:15px;font-weight:700;color:#1565c0">${l.fleetSize} unit${l.fleetSize !== 1 ? 's' : ''}</div>` : ''}
+        ${l.lastOrderDate ? `<div class="cust-info-label" style="margin-top:8px">Last Order</div><div>${lastOrderAgeText(l.lastOrderDate)}</div>` : ''}
+        ${l.duns && l.duns.toLowerCase().trim() !== (l.companyName||'').toLowerCase().trim() ? `<div class="cust-info-label" style="margin-top:8px">DUNS Name</div><div style="font-size:13px;color:#555">${esc(l.duns)}</div>` : ''}
       </div>
     </div>
+    <div id="lead-sat-panel"></div>
     ${(l.sc2FirstName || l.sc2LastName || l.sc2Phone || l.sc2Email) ? `
     <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:14px">
       <div class="cust-info-label" style="margin-bottom:6px;letter-spacing:.5px">SECONDARY CONTACT</div>
@@ -5802,6 +6224,14 @@ function openLeadProfile(id) {
   document.getElementById('lead-profile-body').appendChild(leadDocsContainer);
   renderRecordDocs('lead', l.id, leadDocsContainer);
 
+  // Fleet on Record panel
+  const fleetContainer = document.createElement('div');
+  fleetContainer.id = `fleet-panel-${l.id}`;
+  fleetContainer.style.marginTop = '16px';
+  document.getElementById('lead-profile-body').appendChild(fleetContainer);
+  renderLeadFleetPanel(l.id);
+
+  _loadLeadSatellitePanel(l);
   document.getElementById('overlay-lead-profile').classList.add('open');
 }
 
@@ -5946,8 +6376,13 @@ function renderLeadsGroupedView() {
       const statusBadge = `<span class="badge lead-${cs}" style="font-size:11px">${LEAD_STATUS_LABELS[cs]||cs}</span>`;
       const phoneLink   = l.phone ? `<a href="tel:${esc(l.phone)}" style="color:#1565c0;text-decoration:none" onclick="event.stopPropagation()">${esc(l.phone)}</a>` : '—';
       const addr        = [l.street, l.city].filter(Boolean).join(', ');
+      const topP = getLeadTopPriority(l.id);
+      const fleetBadge = topP === 'high'   ? `<span class="badge replacement-opp" style="font-size:10px" title="Replacement opportunity">⚠ Repl.</span>`
+                       : topP === 'medium' ? `<span class="badge aging-fleet" style="font-size:10px" title="Aging fleet">Aging</span>`
+                       : '';
+      const outBadge = l.outsideTerritory ? `<span class="badge outside-territory">Out of Territory</span>` : '';
       return `<div class="zip-lead-row" onclick="openLeadProfile('${l.id}')">
-        <div class="zip-lead-company">${esc(l.companyName||'—')}</div>
+        <div class="zip-lead-company">${esc(l.companyName||'—')} ${fleetBadge}${outBadge}</div>
         <div class="zip-lead-phone">${phoneLink}</div>
         <div class="zip-lead-address">${esc(addr||'—')}</div>
         <div class="zip-lead-badge">${statusBadge}</div>
@@ -6758,7 +7193,7 @@ document.getElementById('docs-view-list-btn').addEventListener('click', () => {
 });
 
 // Close modals on overlay click
-['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup'].forEach(id => {
+['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup','overlay-uio-import','overlay-add-fleet-unit','overlay-aging-import','overlay-aging-review'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
   });
@@ -6982,7 +7417,17 @@ document.getElementById('lf-clear-filter').addEventListener('click', () => {
 
 // ── Leads tab event listeners ─────────────────────────────────────────────────
 document.getElementById('btn-add-lead').addEventListener('click', () => openLeadModal());
-document.getElementById('btn-import-leads').addEventListener('click', openImportLeadsModal);
+document.getElementById('btn-import-leads').addEventListener('click', () => { closeImportDropdown(); openImportLeadsModal(); });
+
+// Import dropdown toggle
+document.getElementById('btn-import-dropdown-trigger').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('import-dropdown-menu').classList.toggle('open');
+});
+document.addEventListener('click', () => closeImportDropdown());
+function closeImportDropdown() {
+  document.getElementById('import-dropdown-menu').classList.remove('open');
+}
 document.getElementById('import-leads-pick-file').addEventListener('click', () => _pickImportLeadsFile().catch(e => toast('Error: ' + e.message, 'error')));
 document.getElementById('import-leads-confirm').addEventListener('click', doImportLeads);
 document.getElementById('import-leads-cancel').addEventListener('click', () => document.getElementById('overlay-import-leads').classList.remove('open'));
@@ -7008,7 +7453,7 @@ document.getElementById('edit-lead-from-profile').addEventListener('click', () =
 });
 document.getElementById('btn-export-leads').addEventListener('click', exportLeadsExcel);
 
-['leads-search','leads-filter-status','leads-filter-industry','leads-filter-source','leads-filter-zip','leads-filter-rep'].forEach(id => {
+['leads-search','leads-filter-status','leads-filter-industry','leads-filter-source','leads-filter-zip','leads-filter-rep','leads-filter-facility','leads-filter-fleet','leads-filter-county'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('input', () => { if (leadsView === 'list') renderLeadsList(); });
@@ -7901,7 +8346,7 @@ async function showBackupSetupModal() {
 const LEADGEN_DEFAULTS = {
   mapsApiKey: '', apolloApiKey: '',
   apolloSearchesThisMonth: 0, apolloResetDate: '',
-  searchHistory: [],
+
   mapsKeyValid: null, apolloKeyValid: null,
 };
 
@@ -7940,11 +8385,8 @@ const LG_MILES_TO_METERS = { '1': 1609, '3': 4827, '5': 8047, '10': 16093 };
 // ── State ──────────────────────────────────────────────────────────────────────
 
 let lgResults = [];
-let lgResultsShown = 0;
 let lgSessionAdded = 0;
 let lgSearching = false;
-let lgGeoCache = {};
-let lgCurrentSearchParams = null;
 const _lgApolloPeople = {};
 
 // ── Settings UI ────────────────────────────────────────────────────────────────
@@ -8006,6 +8448,83 @@ async function saveLeadGenKey(type) {
 function showApiKeyHelp(type) {
   const el = document.getElementById(type === 'maps' ? 'maps-key-help' : 'apollo-key-help');
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function runMapsRawTest() {
+  const key = (document.getElementById('maps-api-key-input')?.value || lgCfg().mapsApiKey || '').trim();
+  const panel = document.getElementById('maps-raw-result');
+  if (!panel) return;
+
+  if (!key) {
+    panel.style.display = 'block';
+    panel.textContent = 'ERROR: No API key entered. Paste your key first.';
+    return;
+  }
+
+  panel.style.display = 'block';
+  panel.textContent = 'Calling Google Maps API from main process...\nURL: https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=***KEY***';
+
+  const r = await window.aflAPI.lgRawTest(key);
+
+  if (!r.ok) {
+    panel.textContent = `NETWORK ERROR (fetch failed)\n\n${r.error}\n\nThis means the main process could not reach maps.googleapis.com.\nCheck internet connectivity.`;
+    return;
+  }
+
+  let display = `URL: ${r.url}\nHTTP Status: ${r.status}\n\n`;
+
+  if (r.parsed) {
+    const p = r.parsed;
+    display += `Google API status: ${p.status}\n`;
+    if (p.error_message) display += `Error message: ${p.error_message}\n`;
+    if (p.results?.length) display += `Results returned: ${p.results.length}\nFirst result: ${p.results[0].name} — ${p.results[0].formatted_address}\n`;
+    display += `\n--- Full response ---\n${JSON.stringify(p, null, 2)}`;
+  } else {
+    display += `Raw body:\n${r.body}`;
+  }
+
+  panel.textContent = display;
+}
+
+async function runApolloRawTest() {
+  const key = (document.getElementById('apollo-api-key-input')?.value || lgCfg().apolloApiKey || '').trim();
+  const panel = document.getElementById('apollo-raw-result');
+  if (!panel) return;
+
+  if (!key) {
+    panel.style.display = 'block';
+    panel.textContent = 'ERROR: No API key entered. Paste your key first.';
+    return;
+  }
+
+  panel.style.display = 'block';
+  panel.textContent = `Calling Apollo.io API from main process...\nPOST https://api.apollo.io/api/v1/mixed_people/search\nHeaders: X-Api-Key: ***KEY***, Content-Type: application/json\nBody: { "q_organization_name": "warehouse", "per_page": 3, "page": 1 }`;
+
+  const r = await window.aflAPI.lgApolloRawTest(key);
+
+  if (!r.ok) {
+    panel.textContent = `NETWORK ERROR (fetch failed)\n\n${r.error}\n\nThis means the main process could not reach api.apollo.io.\nCheck internet connectivity.`;
+    return;
+  }
+
+  let display = `URL: ${r.url}\nHTTP Status: ${r.status}\n\n`;
+
+  if (r.parsed) {
+    const p = r.parsed;
+    if (p.people?.length) {
+      display += `SUCCESS — ${p.people.length} contacts returned\n`;
+      display += `First result: ${p.people[0].name} — ${p.people[0].title}\n`;
+    } else if (p.error) {
+      display += `Apollo error: ${p.error}\n`;
+    } else if (p.message) {
+      display += `Message: ${p.message}\n`;
+    }
+    display += `\n--- Full response ---\n${JSON.stringify(p, null, 2)}`;
+  } else {
+    display += `Raw body:\n${r.body}`;
+  }
+
+  panel.textContent = display;
 }
 
 // ── Lead Discovery Modal ───────────────────────────────────────────────────────
@@ -8088,7 +8607,6 @@ function _renderFindLeadsModalControls() {
     <div id="lg-search-progress" style="display:none;font-size:13px;color:#555;padding:8px 0 0;border-top:1px solid #f0f0f0;margin-top:10px"></div>`;
 
   _renderLgResults();
-  _renderLgHistory();
 }
 
 function lgSelectAllZips(select) {
@@ -8117,102 +8635,102 @@ async function runLgSearch(allTerritory) {
   if (lgSearching) return;
   const cfg = lgCfg();
 
-  const zips = allTerritory
+  const searchZips = allTerritory
     ? getTerritoryZips()
     : [...document.querySelectorAll('#find-leads-search-panel .lg-zip-check:checked')].map(cb => cb.value);
 
-  if (zips.length === 0) { toast('Select at least one zip code', 'warn'); return; }
+  if (searchZips.length === 0) { toast('Select at least one zip code', 'warn'); return; }
 
+  const territoryZipSet = new Set(getTerritoryZips());
   const selectedIndustries = [...document.querySelectorAll('#find-leads-search-panel .lg-industry-check:checked')].map(cb => cb.value);
-  const radius = parseInt(document.getElementById('lg-radius')?.value || '5');
   const keyword = (document.getElementById('lg-keyword')?.value || '').trim();
 
-  // Build search query from selected industries (up to 5 terms)
-  const queryTerms = selectedIndustries.map(t => LG_INDUSTRY_QUERIES[t] || t).filter(Boolean).slice(0, 5);
+  // Build query — up to 3 industry terms to keep it focused
+  const queryTerms = selectedIndustries.map(t => LG_INDUSTRY_QUERIES[t] || t).filter(Boolean).slice(0, 3);
   if (keyword) queryTerms.unshift(keyword);
-  const queryBase = queryTerms.length > 0 ? queryTerms.join(' ') : 'warehouse industrial manufacturing';
+  const queryBase = queryTerms.length > 0 ? queryTerms.join(' ') : 'warehouse industrial';
 
   lgSearching = true;
   lgResults = [];
-  lgResultsShown = 0;
   lgSessionAdded = 0;
-  lgCurrentSearchParams = { zips, industries: selectedIndustries, keyword, radius };
 
   const progressEl = document.getElementById('lg-search-progress');
   const btn1 = document.getElementById('lg-search-btn');
   const btn2 = document.getElementById('lg-search-all-btn');
-  if (progressEl) { progressEl.style.display = 'block'; progressEl.textContent = `Starting search across ${zips.length} zip code(s)...`; }
+  function setProgress(done, total, label) {
+    if (!progressEl) return;
+    progressEl.style.display = 'block';
+    const pct = total > 1 ? Math.round((done / total) * 100) : 0;
+    const barHtml = total > 1
+      ? `<div style="background:#e0e0e0;border-radius:4px;height:6px;margin-top:6px;overflow:hidden">
+           <div style="background:#1a3a7a;height:100%;width:${pct}%;transition:width .2s"></div>
+         </div>`
+      : '';
+    progressEl.innerHTML = `<span style="font-size:13px;color:#555">${label}</span>${barHtml}`;
+  }
+
+  setProgress(0, searchZips.length, `Searching ${searchZips.length} zip code${searchZips.length !== 1 ? 's' : ''}...`);
   if (btn1) btn1.disabled = true;
   if (btn2) btn2.disabled = true;
 
   try {
     const seenPlaceIds = new Set();
-    const radiusMeters = LG_MILES_TO_METERS[String(radius)] || 8047;
+    const zipCounts = {};
 
-    for (let i = 0; i < zips.length; i++) {
-      const zip = zips[i];
-      if (progressEl) progressEl.textContent = `Searching ${zip} (${i + 1}/${zips.length})...`;
+    for (let i = 0; i < searchZips.length; i++) {
+      const zip = searchZips[i];
+      setProgress(i + 1, searchZips.length, `Searching ${zip} (${i + 1}/${searchZips.length})...`);
 
-      // Geocode zip (cached)
-      let latLng = lgGeoCache[zip];
-      if (!latLng) {
-        const geo = await window.aflAPI.lgGeocode({ zip, apiKey: cfg.mapsApiKey });
-        if (geo.ok) { lgGeoCache[zip] = { lat: geo.lat, lng: geo.lng }; latLng = lgGeoCache[zip]; }
-      }
-
-      const query = `${queryBase} near ${zip} GA`;
-      const res = await window.aflAPI.lgMapsSearch({
-        apiKey: cfg.mapsApiKey, query,
-        lat: latLng?.lat, lng: latLng?.lng, radius: radiusMeters,
-      });
+      const res = await window.aflAPI.lgMapsSearch({ apiKey: cfg.mapsApiKey, query: `${queryBase} ${zip} GA` });
 
       if (!res.ok) {
-        if (progressEl) progressEl.textContent = `Error for ${zip}: ${res.error}`;
+        setProgress(i + 1, searchZips.length, `Error for ${zip}: ${res.error}`);
         continue;
       }
 
       for (const place of res.results) {
         if (seenPlaceIds.has(place.place_id)) continue;
         seenPlaceIds.add(place.place_id);
-        const dist = latLng ? _lgHaversine(latLng.lat, latLng.lng, place.geometry.location.lat, place.geometry.location.lng) : null;
-        lgResults.push({ ...place, _sourceZip: zip, _distanceMiles: dist });
+
+        const addressZip = _lgZipFromAddress(place.formatted_address || '');
+
+        // Strict territory filter — drop results outside territory (unverified = no zip extracted)
+        if (addressZip && !territoryZipSet.has(addressZip)) continue;
+
+        lgResults.push({ ...place, _sourceZip: zip, _addressZip: addressZip });
+        zipCounts[addressZip || 'unverified'] = (zipCounts[addressZip || 'unverified'] || 0) + 1;
       }
     }
 
-    lgResults.sort((a, b) => (a._distanceMiles ?? 999) - (b._distanceMiles ?? 999));
+    // Sort by zip then name within each zip
+    lgResults.sort((a, b) => {
+      const za = a._addressZip || 'zzzzz';
+      const zb = b._addressZip || 'zzzzz';
+      return za !== zb ? za.localeCompare(zb) : (a.name || '').localeCompare(b.name || '');
+    });
 
     if (progressEl) {
-      const msg = lgResults.length > 0
-        ? `Found ${lgResults.length} result${lgResults.length !== 1 ? 's' : ''} — ${lgSessionAdded} added this session`
-        : `No results found. Try selecting different industry types or a larger radius.`;
-      progressEl.textContent = msg;
+      if (lgResults.length === 0) {
+        progressEl.innerHTML = '<span style="font-size:13px;color:#888">No territory results found. Try different industry types or select more zip codes.</span>';
+      } else {
+        const zipSummary = Object.entries(zipCounts)
+          .filter(([z]) => z !== 'unverified')
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([z, c]) => `${z}: ${c}`)
+          .join(' · ');
+        progressEl.innerHTML = `<span style="font-size:13px;color:#2e7d32;font-weight:600">✓ ${lgResults.length} result${lgResults.length !== 1 ? 's' : ''} in territory</span> <span style="font-size:12px;color:#777">— ${zipSummary}</span>`;
+      }
     }
 
-    // Save to history
-    const histEntry = { id: genId('lgh'), date: new Date().toISOString(), zips, industries: selectedIndustries, keyword, resultsFound: lgResults.length, resultsAdded: 0 };
-    lgCfg().searchHistory = [histEntry, ...(lgCfg().searchHistory || [])].slice(0, 20);
-    lgCurrentSearchParams._histId = histEntry.id;
-    await saveData();
-
   } catch (err) {
-    if (progressEl) progressEl.textContent = `Search error: ${err.message}`;
+    if (progressEl) progressEl.innerHTML = `<span style="color:#c62828;font-size:13px">Search error: ${err.message}</span>`;
   } finally {
     lgSearching = false;
     if (btn1) btn1.disabled = false;
     if (btn2) btn2.disabled = false;
   }
 
-  lgResultsShown = 0;
   _renderLgResults();
-  _renderLgHistory();
-}
-
-function _lgHaversine(lat1, lng1, lat2, lng2) {
-  const R = 3958.8;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function _lgZipFromAddress(addr) {
@@ -8220,20 +8738,33 @@ function _lgZipFromAddress(addr) {
   return m ? m[1] : '';
 }
 
+function _levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = [];
+  for (let i = 0; i <= m; i++) { dp[i] = [i]; for (let j = 1; j <= n; j++) dp[i][j] = i === 0 ? j : 0; }
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function _nameSimilarity(a, b) {
+  const s = (a || '').toLowerCase().trim(), t = (b || '').toLowerCase().trim();
+  if (!s || !t) return 0;
+  if (s === t) return 1;
+  const maxLen = Math.max(s.length, t.length);
+  return maxLen === 0 ? 1 : 1 - _levenshtein(s, t) / maxLen;
+}
+
 function _lgCheckDuplicate(name, zip) {
-  const nl = (name || '').toLowerCase();
-  const exact = appState.leads.find(l =>
-    (l.companyName || '').toLowerCase() === nl && (l.zip || '') === (zip || '')
-  );
-  if (exact) return { type: 'exact', lead: exact };
-  if (zip) {
-    const close = appState.leads.find(l => {
-      const ll = (l.companyName || '').toLowerCase();
-      return (l.zip || '') === zip && (ll.includes(nl.split(' ')[0]) || nl.includes(ll.split(' ')[0]));
-    });
-    if (close) return { type: 'close', lead: close };
+  let bestClose = null;
+  for (const l of appState.leads) {
+    const sim = _nameSimilarity(name, l.companyName);
+    const sameZip = zip && (l.zip || '') === zip;
+    if (sameZip && sim >= 0.85) return { type: 'exact', lead: l, sim };
+    if (!sameZip && sim >= 0.75 && (!bestClose || sim > bestClose.sim))
+      bestClose = { type: 'close', lead: l, sim };
   }
-  return null;
+  return bestClose || null;
 }
 
 function _renderLgResults() {
@@ -8245,62 +8776,91 @@ function _renderLgResults() {
     return;
   }
 
-  const PAGE = 20;
-  const toShow = lgResults.slice(0, Math.max(lgResultsShown, PAGE) + PAGE);
-  lgResultsShown = Math.min(toShow.length, lgResults.length);
-
-  const cards = lgResults.slice(0, lgResultsShown).map((p, idx) => {
-    const zip = _lgZipFromAddress(p.formatted_address || '');
-    const dup = _lgCheckDuplicate(p.name, zip);
-    const isCustomer = dup && appState.sales.some(s => (s.customerName || '').toLowerCase() === (p.name || '').toLowerCase());
+  function renderCard(p, idx) {
+    const dup = _lgCheckDuplicate(p.name, p._addressZip);
+    const isCustomer = dup?.type === 'exact' && appState.sales.some(s => (s.customerName || '').toLowerCase() === (p.name || '').toLowerCase());
 
     let statusBadge, actionBtn;
-    if (isCustomer) {
-      statusBadge = `<span class="badge" style="background:#e8f5e9;color:#1b5e20;font-size:11px">Customer</span>`;
-      actionBtn = `<button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px">View Record →</button>`;
-    } else if (dup?.type === 'exact') {
-      statusBadge = `<span class="badge" style="background:#e3f2fd;color:#0d47a1;font-size:11px">Already in System</span>`;
+    if (dup?.type === 'exact') {
+      const label = isCustomer ? 'Customer — Already in System' : 'Already in System';
+      statusBadge = `<span class="badge" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="background:#e8f5e9;color:#1b5e20;font-size:11px;cursor:pointer;text-decoration:underline" title="Click to open record">${label}</span>`;
       actionBtn = `<button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px">View Record →</button>`;
     } else if (dup?.type === 'close') {
-      statusBadge = `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:11px">Possible Duplicate</span>`;
-      actionBtn = `<button class="btn-save" onclick="lgAddResult(${idx})" style="font-size:11px;padding:4px 10px;background:#1a3a7a">+ Add as Lead</button>
-                   <button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px;margin-left:4px">View Similar →</button>`;
+      const existingName = esc(dup.lead.companyName || '');
+      const existingZip = esc(dup.lead.zip || 'no zip');
+      statusBadge = `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:11px">Possible Duplicate</span>
+        <span style="font-size:11px;color:#777;margin-left:4px">Similar to: <em>${existingName}</em> (${existingZip})</span>`;
+      actionBtn = `<button class="btn-save" id="lg-add-${idx}" onclick="lgAddResultForced(${idx})" style="font-size:11px;padding:4px 10px;background:#5a5a5a">Add Anyway</button>
+                   <button class="btn-icon" onclick="lgViewRecord('${esc(dup.lead.id)}')" style="font-size:11px;margin-left:4px">View Existing →</button>`;
     } else {
       statusBadge = `<span class="badge" style="background:#f3e5f5;color:#6a1b9a;font-size:11px">New</span>`;
       actionBtn = `<button class="btn-save" id="lg-add-${idx}" onclick="lgAddResult(${idx})" style="font-size:11px;padding:4px 10px;background:#1a3a7a">+ Add as Lead</button>`;
     }
 
     const rating = p.rating ? `<span style="color:#f57c00;font-size:12px">★ ${p.rating}</span> <span style="color:#999;font-size:11px">(${p.user_ratings_total || 0})</span>` : '';
-    const dist = p._distanceMiles != null ? `<span style="color:#777;font-size:11px">${p._distanceMiles.toFixed(1)} mi from ${p._sourceZip}</span>` : '';
+    const previewBtn = (lgCfg().mapsApiKey && p.formatted_address)
+      ? `<button class="btn-icon" onclick="lgPreviewLocation(${idx})" style="font-size:11px" title="Preview satellite view">🛰️</button>`
+      : '';
 
     return `<div class="lg-result-card" id="lg-card-${idx}">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:2px">${esc(p.name)}</div>
           <div style="font-size:12px;color:#666;margin-bottom:4px">${esc(p.formatted_address || '')}</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${rating}${dist}${statusBadge}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${rating}${statusBadge}</div>
         </div>
-        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">${actionBtn}</div>
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">${previewBtn}${actionBtn}</div>
       </div>
     </div>`;
-  }).join('');
+  }
 
-  const hasMore = lgResults.length > lgResultsShown;
-  const header = `<div style="padding:6px 0 10px;font-size:13px;color:#555;border-bottom:1px solid #eee;margin-bottom:8px">
-    Found <strong>${lgResults.length}</strong> result${lgResults.length !== 1 ? 's' : ''} &nbsp;·&nbsp;
+  // Partition into zip groups and unverified
+  const groups = {};
+  const unverified = [];
+  lgResults.forEach((p, idx) => {
+    if (p._addressZip) {
+      if (!groups[p._addressZip]) groups[p._addressZip] = [];
+      groups[p._addressZip].push({ p, idx });
+    } else {
+      unverified.push({ p, idx });
+    }
+  });
+
+  const header = `<div style="padding:6px 0 10px;font-size:13px;color:#555;border-bottom:1px solid #eee;margin-bottom:12px">
+    Found <strong>${lgResults.length}</strong> result${lgResults.length !== 1 ? 's' : ''} across <strong>${Object.keys(groups).length}</strong> zip code${Object.keys(groups).length !== 1 ? 's' : ''} &nbsp;·&nbsp;
     <strong>${lgSessionAdded}</strong> added this session
   </div>`;
-  const footer = hasMore
-    ? `<div style="text-align:center;padding:12px 0"><button class="btn-icon" onclick="lgLoadMore()" style="font-size:13px">Load ${Math.min(20, lgResults.length - lgResultsShown)} more of ${lgResults.length - lgResultsShown} remaining</button></div>`
-    : '';
 
-  el.innerHTML = header + cards + footer;
+  const groupsHtml = Object.keys(groups).sort().map(zip => {
+    const city = TERRITORY_ZIP_CITIES[zip] || '';
+    const items = groups[zip];
+    const cityLabel = city ? ` — ${city}` : '';
+    const zipHeader = `<div style="background:#e8edf7;border-radius:6px;padding:6px 12px;margin-bottom:6px;margin-top:4px">
+      <span style="font-size:13px;font-weight:700;color:#1a3a7a">${esc(zip)}${esc(cityLabel)}</span>
+      <span style="font-size:12px;color:#5a72a0;margin-left:8px">${items.length} result${items.length !== 1 ? 's' : ''}</span>
+    </div>`;
+    const cards = items.map(({ p, idx }) => renderCard(p, idx)).join('');
+    return `<div style="margin-bottom:16px">${zipHeader}${cards}</div>`;
+  }).join('');
+
+  let unverifiedHtml = '';
+  if (unverified.length > 0) {
+    unverifiedHtml = `<div style="margin-top:8px">
+      <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#e65100">Unverified Location (${unverified.length})</div>
+          <div style="font-size:11px;color:#bf360c">Zip code could not be confirmed from address — verify before adding</div>
+        </div>
+      </div>
+      ${unverified.map(({ p, idx }) => renderCard(p, idx)).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = header + groupsHtml + unverifiedHtml;
 }
 
-function lgLoadMore() {
-  lgResultsShown = 0;
-  _renderLgResults();
-}
+function lgLoadMore() { /* no-op — results now show all grouped by zip */ }
 
 function lgViewRecord(leadId) {
   closeFindLeadsModal();
@@ -8359,18 +8919,67 @@ async function lgAddResult(idx) {
   appState.leads.push(lead);
   lgSessionAdded++;
 
-  // Update history entry count
-  if (lgCurrentSearchParams?._histId) {
-    const h = (lgCfg().searchHistory || []).find(x => x.id === lgCurrentSearchParams._histId);
-    if (h) h.resultsAdded = (h.resultsAdded || 0) + 1;
-  }
-
   await saveData();
   renderLeads();
   renderDashLeadGen();
   toast(`${place.name} added to Contacts/Leads`);
 
   // Mark card as added
+  const card = document.getElementById(`lg-card-${idx}`);
+  if (card) {
+    card.classList.add('lg-added');
+    const actionDiv = card.querySelector('div > div:last-child');
+    if (actionDiv) actionDiv.innerHTML = `<span style="font-size:12px;color:#2e7d32;font-weight:600">✓ Added</span>
+      <button class="btn-icon" onclick="lgViewRecord('${esc(lead.id)}')" style="font-size:11px;margin-left:4px">View →</button>`;
+  }
+}
+
+async function lgAddResultForced(idx) {
+  const place = lgResults[idx];
+  if (!place) return;
+  const cfg = lgCfg();
+
+  const addBtn = document.getElementById(`lg-add-${idx}`);
+  if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Adding...'; }
+
+  let details = null;
+  try {
+    const dr = await window.aflAPI.lgMapsDetails({ apiKey: cfg.mapsApiKey, placeId: place.place_id });
+    if (dr.ok) details = dr.result;
+  } catch {}
+
+  const addr = place.formatted_address || '';
+  const zip = _lgZipFromAddress(addr);
+  const parts = addr.split(',').map(s => s.trim());
+  const street = parts[0] || '';
+  const city = parts[1] || '';
+  const phone = details?.formatted_phone_number || '';
+  const website = details?.website || '';
+  let domain = '';
+  try { if (website) domain = new URL(website.startsWith('http') ? website : 'https://' + website).hostname.replace(/^www\./, ''); } catch {}
+
+  const now = new Date().toISOString();
+  const lead = {
+    id: genId('l'),
+    companyName: place.name, contactName: '', firstName: '', lastName: '',
+    phone, email: '', street, city, state: 'GA', zip,
+    website, domain,
+    industry: _lgGuessIndustry(place),
+    leadSource: 'lead_finder_maps',
+    status: 'contact',
+    notes: place.rating ? `Google Maps rating: ★ ${place.rating} (${place.user_ratings_total || 0} reviews)` : '',
+    statusHistory: [], activityLog: [],
+    lastActivityDate: today(), createdAt: now, updatedAt: now, linkedCustomerId: null,
+    mapsPlaceId: place.place_id, mapsRating: place.rating || null,
+  };
+
+  appState.leads.push(lead);
+  lgSessionAdded++;
+  await saveData();
+  renderLeads();
+  renderDashLeadGen();
+  toast(`${place.name} added to Contacts/Leads`);
+
   const card = document.getElementById(`lg-card-${idx}`);
   if (card) {
     card.classList.add('lg-added');
@@ -8393,27 +9002,7 @@ function _lgGuessIndustry(place) {
   return 'other';
 }
 
-function _renderLgHistory() {
-  const el = document.getElementById('find-leads-history');
-  if (!el) return;
-  const history = (lgCfg().searchHistory || []).slice(0, 6);
-  if (history.length === 0) {
-    el.innerHTML = '<span style="color:#aaa;font-size:12px">No searches yet.</span>';
-    return;
-  }
-  el.innerHTML = history.map(h => {
-    const d = new Date(h.date);
-    const ds = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-    const zipStr = (h.zips || []).length > 3 ? `${h.zips.slice(0, 3).join(', ')} +${h.zips.length - 3}` : (h.zips || []).join(', ');
-    const indStr = (h.industries || []).length > 3 ? `${h.industries.slice(0, 3).join(', ')} +${h.industries.length - 3}` : (h.industries || []).slice(0, 3).join(', ');
-    return `<div class="lg-history-row">
-      <span style="color:#888;white-space:nowrap;min-width:80px">${ds}</span>
-      <span style="color:#333;min-width:120px">${esc(zipStr || '—')}</span>
-      <span style="color:#666;flex:1">${esc(indStr || 'All')}</span>
-      <span style="color:#1a3a7a;white-space:nowrap">${h.resultsFound} found, ${h.resultsAdded} added</span>
-    </div>`;
-  }).join('');
-}
+
 
 // ── Apollo Decision Maker Finder ────────────────────────────────────────────────
 
@@ -8559,12 +9148,6 @@ function renderDashLeadGen() {
   const newThisWeek = appState.leads.filter(l => l.leadSource === 'lead_finder_maps' && l.createdAt && new Date(l.createdAt).getTime() > weekAgo).length;
   const totalFromFinder = appState.leads.filter(l => l.leadSource === 'lead_finder_maps').length;
   const apolloUsed = cfg.apolloSearchesThisMonth || 0;
-  const lastSearch = (cfg.searchHistory || [])[0];
-  const lastStr = lastSearch ? (() => {
-    const d = new Date(lastSearch.date);
-    const zipStr = (lastSearch.zips || []).slice(0, 3).join(', ') + (lastSearch.zips?.length > 3 ? ' +more' : '');
-    return `${d.getMonth() + 1}/${d.getDate()} — ${zipStr || '?'}`;
-  })() : 'Never';
 
   el.innerHTML = `
     <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
@@ -8581,8 +9164,7 @@ function renderDashLeadGen() {
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px">Apollo Searches</div>
       </div>
       <div style="flex:1;font-size:13px;color:#555;padding-top:4px;min-width:180px">
-        <div><strong>Last search:</strong> ${esc(lastStr)}</div>
-        <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
           <span>${cfg.mapsKeyValid === true ? '<span style="color:#2e7d32;font-size:12px">● Google Maps connected</span>' : '<span style="color:#c62828;font-size:12px">● Google Maps not set up</span>'}</span>
           <span>${cfg.apolloKeyValid === true ? '<span style="color:#2e7d32;font-size:12px">● Apollo.io connected</span>' : '<span style="color:#c62828;font-size:12px">● Apollo.io not set up</span>'}</span>
         </div>
@@ -8671,10 +9253,258 @@ async function toggleStartupNotification(enable) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// SATELLITE VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+
+const _satImgCache = {};
+let _satPanelAddr = '';
+let _satPanelApiKey = '';
+
+function _buildSatAddress(l) {
+  const cityStateZip = [l.city, l.state, l.zip].filter(Boolean).join(' ');
+  return [l.street, cityStateZip].filter(Boolean).join(', ');
+}
+
+function _facilitySelectHtml(l) {
+  const sizes = [
+    ['', 'Unknown'],
+    ['small', 'Small (under 10,000 sq ft)'],
+    ['medium', 'Medium (10,000 – 50,000 sq ft)'],
+    ['large', 'Large (50,000 – 200,000 sq ft)'],
+    ['xlarge', 'Very Large (200,000+ sq ft)'],
+  ];
+  const cur = l.facilitySize || '';
+  const opts = sizes.map(([v, lbl]) =>
+    `<option value="${v}"${cur === v ? ' selected' : ''}>${lbl}</option>`
+  ).join('');
+  return `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#666;font-weight:600">Facility Size:</span>
+    <select onchange="saveLeadFacilitySize('${l.id}', this.value)" style="font-size:12px;border:1px solid #ddd;border-radius:4px;padding:3px 8px;color:#333">${opts}</select>
+  </div>`;
+}
+
+function saveLeadFacilitySize(leadId, value) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  l.facilitySize = value;
+  l.updatedAt = new Date().toISOString();
+  saveData();
+  toast('Facility size saved');
+}
+
+async function _fetchSatImage(addr, apiKey) {
+  try {
+    const result = await window.aflAPI.lgStaticMap({ address: addr, apiKey });
+    if (result.ok) {
+      _satImgCache[addr] = result.dataUrl;
+      const loadingEl = document.getElementById('lead-sat-loading');
+      const imgEl     = document.getElementById('lead-sat-img');
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (imgEl) { imgEl.src = result.dataUrl; imgEl.style.display = 'block'; }
+    } else {
+      const loadingEl = document.getElementById('lead-sat-loading');
+      if (loadingEl) loadingEl.innerHTML = `
+        <div style="text-align:center;padding:24px;color:#aaa">
+          <div style="font-size:13px;margin-bottom:8px">No image available</div>
+          <button class="btn-icon" onclick="openSatMaps()">View on Google Maps</button>
+        </div>`;
+    }
+  } catch (err) {
+    const loadingEl = document.getElementById('lead-sat-loading');
+    if (loadingEl) loadingEl.innerHTML = `<div style="text-align:center;padding:24px;color:#aaa;font-size:13px">Failed to load image</div>`;
+  }
+}
+
+function _loadLeadSatellitePanel(l) {
+  const panelEl = document.getElementById('lead-sat-panel');
+  if (!panelEl) return;
+
+  const addr   = _buildSatAddress(l);
+  const apiKey = lgCfg().mapsApiKey;
+  _satPanelAddr   = addr;
+  _satPanelApiKey = apiKey || '';
+
+  let imgSection;
+  if (!addr) {
+    imgSection = `<div style="color:#aaa;font-size:13px;text-align:center;padding:16px 0">No address on file — add an address to enable satellite view</div>`;
+  } else if (!apiKey) {
+    imgSection = `<div style="color:#aaa;font-size:13px;text-align:center;padding:16px 0">Add a Google Maps API key in <b>Settings → Lead Generation</b> to enable satellite imagery</div>`;
+  } else if (_satImgCache[addr]) {
+    imgSection = `<img src="${_satImgCache[addr]}" style="width:100%;border-radius:6px;cursor:pointer;display:block" onclick="openMapEmbed()" title="Click to open interactive map">`;
+  } else {
+    imgSection = `
+      <div id="lead-sat-loading" style="display:flex;align-items:center;justify-content:center;height:160px;background:#f0f0f0;border-radius:6px">
+        <div style="text-align:center;color:#999">
+          <div style="font-size:26px;margin-bottom:6px">🛰️</div>
+          <div style="font-size:13px">Loading satellite image...</div>
+        </div>
+      </div>
+      <img id="lead-sat-img" src="" style="display:none;width:100%;border-radius:6px;cursor:pointer" onclick="openMapEmbed()" title="Click to open interactive map">`;
+  }
+
+  panelEl.innerHTML = `
+    <div style="margin-bottom:16px;background:#f7f9ff;border:1px solid #d0d9f0;border-radius:8px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <div class="section-title" style="margin-bottom:0;color:#1a3a7a">🛰️ Satellite View</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${addr && apiKey ? `<button class="btn-icon" onclick="openMapEmbed()" style="font-size:11px">🗺️ Expand Map</button>` : ''}
+          ${addr ? `<button class="btn-icon" onclick="openSatEarth()" style="font-size:11px">🌍 Google Earth</button>` : ''}
+          ${addr ? `<button class="btn-icon" onclick="openSatMaps()" style="font-size:11px">📍 Google Maps</button>` : ''}
+        </div>
+      </div>
+      ${imgSection}
+      ${addr ? `<div style="font-size:11px;color:#888;margin-top:6px">${esc(addr)}</div>` : ''}
+      ${_facilitySelectHtml(l)}
+    </div>`;
+
+  if (addr && apiKey && !_satImgCache[addr]) _fetchSatImage(addr, apiKey);
+}
+
+function openMapEmbed() {
+  if (!_satPanelAddr || !_satPanelApiKey) return;
+  const url = `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(_satPanelApiKey)}&q=${encodeURIComponent(_satPanelAddr)}&maptype=satellite&zoom=18`;
+  document.getElementById('map-embed-frame').src = url;
+  document.getElementById('map-embed-title').textContent = _satPanelAddr;
+  document.getElementById('overlay-map-embed').classList.add('open');
+}
+
+function closeMapEmbed() {
+  document.getElementById('overlay-map-embed')?.classList.remove('open');
+  document.getElementById('map-embed-frame').src = '';
+}
+
+function openSatEarth() {
+  if (_satPanelAddr) window.aflAPI.openExternal(`https://earth.google.com/web/search/${encodeURIComponent(_satPanelAddr)}`);
+}
+
+function openSatMaps() {
+  if (_satPanelAddr) window.aflAPI.openExternal(`https://www.google.com/maps/search/${encodeURIComponent(_satPanelAddr)}`);
+}
+
+async function openSatPreview(name, address) {
+  const el = document.getElementById('overlay-sat-preview');
+  if (!el) return;
+  const apiKey = lgCfg().mapsApiKey;
+
+  document.getElementById('sat-preview-title').textContent = name || '';
+  document.getElementById('sat-preview-addr').textContent  = address || '';
+  document.getElementById('sat-preview-actions').innerHTML = `
+    <button class="btn-icon" onclick="_openSatEarthPreview()" style="font-size:12px">🌍 Google Earth</button>
+    <button class="btn-icon" onclick="_openSatMapsPreview()" style="font-size:12px">📍 Google Maps</button>`;
+
+  const imgCont = document.getElementById('sat-preview-img-container');
+  imgCont.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:220px;background:#f5f5f5;border-radius:6px">
+      <div style="text-align:center;color:#999">
+        <div style="font-size:26px;margin-bottom:6px">🛰️</div>
+        <div style="font-size:13px">Loading satellite image...</div>
+      </div>
+    </div>`;
+  el.classList.add('open');
+
+  if (!apiKey) {
+    imgCont.innerHTML = `<div style="text-align:center;padding:32px;color:#aaa;font-size:13px">Add a Google Maps API key in Settings → Lead Generation to enable satellite imagery</div>`;
+    return;
+  }
+  if (_satImgCache[address]) {
+    imgCont.innerHTML = `<img src="${_satImgCache[address]}" style="width:100%;border-radius:6px;display:block">`;
+    return;
+  }
+  const result = await window.aflAPI.lgStaticMap({ address, apiKey });
+  if (result.ok) {
+    _satImgCache[address] = result.dataUrl;
+    if (el.classList.contains('open'))
+      imgCont.innerHTML = `<img src="${result.dataUrl}" style="width:100%;border-radius:6px;display:block">`;
+  } else {
+    if (el.classList.contains('open'))
+      imgCont.innerHTML = `
+        <div style="text-align:center;padding:32px;color:#aaa">
+          <div style="font-size:13px;margin-bottom:8px">No image available</div>
+          <button class="btn-icon" onclick="_openSatMapsPreview()">View on Google Maps</button>
+        </div>`;
+  }
+}
+
+function closeSatPreview() {
+  document.getElementById('overlay-sat-preview')?.classList.remove('open');
+}
+
+function _openSatEarthPreview() {
+  const addr = (document.getElementById('sat-preview-addr')?.textContent || '').trim();
+  if (addr) window.aflAPI.openExternal(`https://earth.google.com/web/search/${encodeURIComponent(addr)}`);
+}
+
+function _openSatMapsPreview() {
+  const addr = (document.getElementById('sat-preview-addr')?.textContent || '').trim();
+  if (addr) window.aflAPI.openExternal(`https://www.google.com/maps/search/${encodeURIComponent(addr)}`);
+}
+
+async function lgPreviewLocation(idx) {
+  const p = lgResults[idx];
+  if (!p || !p.formatted_address) return;
+  await openSatPreview(p.name || '', p.formatted_address);
+}
+
+async function runStartupDedupe() {
+  if (appState.dedupeV1) return;
+
+  const leads = appState.leads;
+  const kept = [];
+  const removed = new Set();
+  let mergeCount = 0;
+
+  for (let i = 0; i < leads.length; i++) {
+    if (removed.has(leads[i].id)) continue;
+    const a = leads[i];
+    const dupes = [];
+
+    for (let j = i + 1; j < leads.length; j++) {
+      if (removed.has(leads[j].id)) continue;
+      const b = leads[j];
+      const sim = _nameSimilarity(a.companyName, b.companyName);
+      const sameZip = (a.zip || '') !== '' && (a.zip || '') === (b.zip || '');
+      if (sim >= 0.92 && sameZip) {
+        dupes.push(b);
+        removed.add(b.id);
+      }
+    }
+
+    if (dupes.length > 0) {
+      const candidates = [a, ...dupes].sort((x, y) => {
+        const score = r => Object.values(r).filter(v => v != null && v !== '' && !(Array.isArray(v) && v.length === 0)).length;
+        return score(y) - score(x);
+      });
+      const primary = candidates[0];
+      for (const dup of candidates.slice(1)) {
+        for (const key of Object.keys(dup)) {
+          if (key === 'id' || key === 'createdAt') continue;
+          const pv = primary[key];
+          if (pv == null || pv === '' || (Array.isArray(pv) && pv.length === 0)) primary[key] = dup[key];
+        }
+      }
+      kept.push(primary);
+      mergeCount += dupes.length;
+    } else {
+      kept.push(a);
+    }
+  }
+
+  appState.leads = kept;
+  appState.dedupeV1 = true;
+  await saveData();
+
+  if (mergeCount > 0) {
+    renderLeads();
+    toast(`${mergeCount} duplicate record${mergeCount !== 1 ? 's' : ''} found and merged`, 'info');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════════════════════
 (async () => {
   await loadData();
+  await runStartupDedupe();
   initCustPicker();
   initQuoteCustPicker();
   renderDashboard();
@@ -8691,6 +9521,1280 @@ async function toggleStartupNotification(enable) {
   await initLeadGen();
   await initSystemSettings();
 })();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FLEET ON RECORD — Helpers, Import, Profile Panel, Quote Sidebar, Dashboard
+// ══════════════════════════════════════════════════════════════════════════════
+
+function fleetAgeMs(dateStr) {
+  if (!dateStr) return 0;
+  return Date.now() - new Date(dateStr + 'T00:00:00').getTime();
+}
+function fleetAgeYears(dateStr) {
+  return fleetAgeMs(dateStr) / (365.25 * 24 * 3600 * 1000);
+}
+function fleetAgeText(dateStr) {
+  if (!dateStr) return '—';
+  const totalMonths = Math.floor(fleetAgeMs(dateStr) / (30.44 * 24 * 3600 * 1000));
+  const yrs = Math.floor(totalMonths / 12);
+  const mos = totalMonths % 12;
+  if (yrs === 0) return mos + ' mo';
+  if (mos === 0) return yrs + ' yr' + (yrs !== 1 ? 's' : '');
+  return yrs + ' yr ' + mos + ' mo';
+}
+function fleetPriority(dateStr) {
+  const y = fleetAgeYears(dateStr);
+  if (y >= 10) return 'high';
+  if (y >= 7)  return 'medium';
+  return 'low';
+}
+function priorityBadgeHtml(p) {
+  if (p === 'high')   return `<span class="badge priority-high" title="10+ years — high replacement priority">High</span>`;
+  if (p === 'medium') return `<span class="badge priority-medium" title="7–10 years — aging fleet">Med</span>`;
+  return `<span class="badge priority-low" title="Under 7 years">Low</span>`;
+}
+function getLeadEquipment(leadId) {
+  return (appState.equipment || []).filter(e => e.leadId === leadId);
+}
+function getLeadTopPriority(leadId) {
+  const eq = getLeadEquipment(leadId);
+  if (!eq.length) return null;
+  if (eq.some(e => fleetPriority(e.dateOfPurchase) === 'high'))   return 'high';
+  if (eq.some(e => fleetPriority(e.dateOfPurchase) === 'medium')) return 'medium';
+  return 'low';
+}
+
+// ── UIO Import ────────────────────────────────────────────────────────────────
+
+async function importUIOFleet() {
+  const filePath = await window.aflAPI.openExcel();
+  if (!filePath) return;
+  const result = await window.aflAPI.parseExcel(filePath);
+  if (result.error) { toast('Error reading file: ' + result.error, 'error'); return; }
+  if (!result.rows || !result.rows.length) { toast('No data rows found in file', 'error'); return; }
+
+  const hdrs = result.headers.map(h => String(h).toLowerCase().trim());
+  const ci = {
+    model:   hdrs.findIndex(h => h.includes('model')),
+    serial:  hdrs.findIndex(h => h.includes('serial')),
+    company: hdrs.findIndex(h => h.includes('company')),
+    address: hdrs.findIndex(h => h.includes('address')),
+    city:    hdrs.findIndex(h => h.includes('city')),
+    zip:     hdrs.findIndex(h => h.includes('zip')),
+    state:   hdrs.findIndex(h => h.includes('state')),
+    dop:     hdrs.findIndex(h => h.includes('date') || h.includes('purchase')),
+  };
+
+  const rows = result.rows.map(r => ({
+    model:   String(r[ci.model]   ?? '').trim(),
+    serial:  String(r[ci.serial]  ?? '').trim(),
+    company: String(r[ci.company] ?? '').trim(),
+    address: String(r[ci.address] ?? '').trim(),
+    city:    String(r[ci.city]    ?? '').trim(),
+    zip:     String(r[ci.zip]     ?? '').trim().replace(/\.0$/, '').padStart(5, '0').slice(0, 5),
+    state:   String(r[ci.state]   ?? '').trim() || 'GA',
+    dop:     parseUIODate(r[ci.dop]),
+  })).filter(r => r.company && r.serial);
+
+  if (!rows.length) { toast('No valid rows found — check that column names match the expected format', 'error'); return; }
+  showUIOPreviewModal(rows);
+}
+
+function parseUIODate(val) {
+  if (val === undefined || val === null || val === '') return '';
+  if (typeof val === 'number') {
+    // Excel serial: days since 1900-01-00
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+  }
+  const s = String(val).trim();
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+function showUIOPreviewModal(rows) {
+  const territoryZips = getTerritoryZips();
+  const groups = new Map();
+  for (const r of rows) {
+    const key = (r.company + '|' + r.zip).toLowerCase();
+    if (!groups.has(key)) groups.set(key, { company: r.company, zip: r.zip, city: r.city, state: r.state, address: r.address, units: [] });
+    groups.get(key).units.push(r);
+  }
+  const companies = [...groups.values()];
+  let newCount = 0, matchCount = 0;
+  for (const g of companies) {
+    const ex = appState.leads.find(l =>
+      (l.companyName || '').toLowerCase() === g.company.toLowerCase() &&
+      (l.zip || '').slice(0, 5) === g.zip.slice(0, 5)
+    );
+    g.existingLead = ex || null;
+    g.outsideTerritory = !territoryZips.includes(g.zip);
+    if (ex) matchCount++; else newCount++;
+  }
+  window._uioPendingRows = rows;
+  window._uioPendingGroups = companies;
+
+  const preview = companies.slice(0, 20).map(g => {
+    const oBadge = g.outsideTerritory ? `<span class="badge outside-territory" style="margin-left:4px">Out of Territory</span>` : '';
+    const mBadge = g.existingLead
+      ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;font-size:10px">Matched</span>`
+      : `<span class="badge" style="background:#e3f2fd;color:#1565c0;font-size:10px">New</span>`;
+    return `<tr>
+      <td style="font-weight:600">${esc(g.company)}${oBadge}</td>
+      <td>${esc(g.zip)}</td>
+      <td style="text-align:center">${g.units.length}</td>
+      <td>${mBadge}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('modal-uio-body').innerHTML = `
+    <div style="margin-bottom:12px;font-size:14px">
+      <b>${rows.length} units</b> across <b>${companies.length} companies</b> —
+      <span style="color:#2e7d32;font-weight:700">${matchCount} matched</span> to existing contacts,
+      <span style="color:#1565c0;font-weight:700">${newCount} new</span> records will be created.
+    </div>
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto;margin-bottom:8px">
+      <table class="import-preview-table">
+        <thead><tr><th>Company</th><th>Zip</th><th>Units</th><th>Status</th></tr></thead>
+        <tbody>${preview}</tbody>
+      </table>
+    </div>
+    ${companies.length > 20 ? `<div style="font-size:12px;color:#aaa">…and ${companies.length - 20} more companies</div>` : ''}`;
+  document.getElementById('overlay-uio-import').classList.add('open');
+}
+
+async function confirmUIOImport() {
+  const rows = window._uioPendingRows;
+  const companies = window._uioPendingGroups;
+  if (!rows || !companies) return;
+  if (!appState.equipment) appState.equipment = [];
+  const now = new Date().toISOString();
+  let newLeads = 0, matched = 0, units = 0;
+
+  for (const g of companies) {
+    let lead = g.existingLead;
+    if (!lead) {
+      lead = {
+        id: genId('l'), companyName: g.company,
+        street: g.address, city: g.city, state: g.state || 'GA', zip: g.zip,
+        status: 'customer', leadSource: 'uio_import',
+        outsideTerritory: g.outsideTerritory || false,
+        notes: '', activityLog: [{ date: now, type: 'import', note: 'Imported from UIO fleet data.' }],
+        createdAt: now, updatedAt: now,
+      };
+      appState.leads.push(lead);
+      newLeads++;
+    } else {
+      if (g.outsideTerritory) lead.outsideTerritory = true;
+      matched++;
+    }
+    for (const u of g.units) {
+      appState.equipment.push({
+        id: genId('eq'), leadId: lead.id, companyName: g.company,
+        oem: 'Toyota', model: u.model, serialNumber: u.serial,
+        street: u.address, city: u.city, state: u.state || 'GA', zip: u.zip,
+        dateOfPurchase: u.dop, notes: '', createdAt: now,
+      });
+      units++;
+    }
+  }
+  document.getElementById('overlay-uio-import').classList.remove('open');
+  await saveData();
+  renderLeads();
+  renderDashboard();
+  toast(`Import complete — ${newLeads} new contacts, ${matched} matched, ${units} units linked`);
+}
+
+// ── Fleet panel in lead profile ────────────────────────────────────────────────
+
+let _fleetSortCol = 'age';
+let _fleetSortAsc = false;
+
+function renderLeadFleetPanel(leadId) {
+  const container = document.getElementById(`fleet-panel-${leadId}`);
+  if (!container) return;
+  let equip = [...getLeadEquipment(leadId)];
+  equip.sort((a, b) => {
+    if (_fleetSortCol === 'age') {
+      const d = fleetAgeMs(b.dateOfPurchase) - fleetAgeMs(a.dateOfPurchase);
+      return _fleetSortAsc ? -d : d;
+    }
+    const va = String(a[_fleetSortCol] || '');
+    const vb = String(b[_fleetSortCol] || '');
+    return _fleetSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  const highCount = equip.filter(e => fleetPriority(e.dateOfPurchase) === 'high').length;
+  const oemLabel = equip.length ? (equip[0].oem || 'Toyota') : 'Toyota';
+
+  const th = (col, label) => {
+    const active = _fleetSortCol === col;
+    const arrow = active ? (_fleetSortAsc ? ' ↑' : ' ↓') : '';
+    return `<th onclick="setFleetSort('${leadId}','${col}')">${label}${arrow}</th>`;
+  };
+
+  const tableRows = equip.map(e => `<tr>
+    <td><span class="badge model" style="font-size:11px">${esc(e.model || '—')}</span></td>
+    <td style="font-family:monospace;font-size:12px">${esc(e.serialNumber || '—')}</td>
+    <td style="font-size:12px;color:#666">${esc([e.city, e.zip].filter(Boolean).join(', ') || '—')}</td>
+    <td style="font-size:12px">${e.dateOfPurchase ? formatDate(e.dateOfPurchase) : '—'}</td>
+    <td style="font-size:12px;font-weight:600">${fleetAgeText(e.dateOfPurchase)}</td>
+    <td>${priorityBadgeHtml(fleetPriority(e.dateOfPurchase))}</td>
+    <td><input type="text" value="${esc(e.notes || '')}" placeholder="Notes…"
+      style="border:1px solid #e0e0e0;border-radius:4px;padding:3px 6px;font-size:12px;width:100%;background:#fff"
+      onchange="saveEquipmentNotes('${e.id}',this.value)"></td>
+  </tr>`).join('');
+
+  container.innerHTML = `<div class="fleet-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:700">
+        🚜 ${equip.length} ${oemLabel} Forklift${equip.length !== 1 ? 's' : ''} on Record
+        ${highCount ? `<span class="badge replacement-opp" style="margin-left:8px">⚠ ${highCount} Replacement${highCount > 1 ? 's' : ''} Needed</span>` : ''}
+      </div>
+      <button class="btn-icon" style="font-size:12px" onclick="openAddFleetUnitModal('${leadId}')">+ Add Unit</button>
+    </div>
+    ${equip.length ? `<div style="overflow-x:auto"><table class="fleet-table">
+      <thead><tr>${th('model','Model')}${th('serialNumber','Serial #')}<th>Location</th>${th('dateOfPurchase','Purchased')}${th('age','Age')}<th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table></div>` : '<div style="color:#aaa;font-size:13px;padding:6px 0">No fleet records yet — click + Add Unit to add one.</div>'}
+  </div>`;
+}
+
+function setFleetSort(leadId, col) {
+  if (_fleetSortCol === col) _fleetSortAsc = !_fleetSortAsc;
+  else { _fleetSortCol = col; _fleetSortAsc = col !== 'age'; }
+  renderLeadFleetPanel(leadId);
+}
+
+function saveEquipmentNotes(eqId, notes) {
+  const eq = (appState.equipment || []).find(e => e.id === eqId);
+  if (eq) { eq.notes = notes; saveData(); }
+}
+
+function openAddFleetUnitModal(leadId) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  document.getElementById('add-fleet-lead-id').value = leadId;
+  document.getElementById('add-fleet-company').value = l.companyName || '';
+  document.getElementById('add-fleet-oem').value = 'Toyota';
+  ['model', 'serial', 'dop', 'notes'].forEach(f => { const el = document.getElementById('add-fleet-' + f); if (el) el.value = ''; });
+  document.getElementById('add-fleet-city').value = l.city || '';
+  document.getElementById('add-fleet-zip').value = l.zip || '';
+  document.getElementById('overlay-add-fleet-unit').classList.add('open');
+}
+
+function saveAddFleetUnit() {
+  const leadId = document.getElementById('add-fleet-lead-id').value;
+  const model  = (document.getElementById('add-fleet-model')?.value || '').trim();
+  if (!model) { toast('Model is required', 'error'); return; }
+  if (!appState.equipment) appState.equipment = [];
+  appState.equipment.push({
+    id: genId('eq'), leadId,
+    companyName: (document.getElementById('add-fleet-company')?.value || '').trim(),
+    oem: (document.getElementById('add-fleet-oem')?.value || 'Toyota').trim(),
+    model,
+    serialNumber: (document.getElementById('add-fleet-serial')?.value || '').trim(),
+    street: '',
+    city: (document.getElementById('add-fleet-city')?.value || '').trim(),
+    state: 'GA',
+    zip: String(document.getElementById('add-fleet-zip')?.value || '').trim().replace(/\.0$/,'').padStart(5,'0').slice(0,5),
+    dateOfPurchase: document.getElementById('add-fleet-dop')?.value || '',
+    notes: (document.getElementById('add-fleet-notes')?.value || '').trim(),
+    createdAt: new Date().toISOString(),
+  });
+  document.getElementById('overlay-add-fleet-unit').classList.remove('open');
+  saveData();
+  renderLeadFleetPanel(leadId);
+  toast('Fleet unit added');
+}
+
+// ── Quote fleet sidebar ────────────────────────────────────────────────────────
+
+function updateQuoteFleetPanel() {
+  const panel      = document.getElementById('q-fleet-sidebar');
+  const listEl     = document.getElementById('q-fleet-list');
+  const replaceSel = document.getElementById('q-replacing-unit');
+  if (!panel || !listEl || !replaceSel) return;
+
+  const custId   = (document.getElementById('q-cust-id')?.value || '').trim();
+  const custName = (document.getElementById('q-name')?.value || '').trim().toLowerCase();
+  const lead = appState.leads.find(l =>
+    (custId && l.linkedCustomerId === custId) ||
+    (!custId && custName && (l.companyName || '').toLowerCase() === custName)
+  );
+  const equip = lead ? getLeadEquipment(lead.id) : [];
+
+  const prevVal = replaceSel.value;
+  replaceSel.innerHTML = '<option value="">— None —</option>';
+  for (const e of equip) {
+    const opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = `${e.model || '?'} | SN: ${e.serialNumber || '?'} | ${fleetAgeText(e.dateOfPurchase)} old`;
+    replaceSel.appendChild(opt);
+  }
+  if (prevVal) replaceSel.value = prevVal;
+
+  if (!equip.length) { panel.style.display = 'none'; return; }
+
+  const sorted = [...equip].sort((a, b) => fleetAgeMs(b.dateOfPurchase) - fleetAgeMs(a.dateOfPurchase));
+  listEl.innerHTML = sorted.map(e => `<div class="q-fleet-row">
+    <span style="font-weight:600;flex:1;font-size:12px">${esc(e.model || '—')}</span>
+    <span style="color:#888;font-size:11px;font-family:monospace;margin-right:4px">${esc(e.serialNumber || '—')}</span>
+    <span style="font-size:11px;color:#555;margin-right:6px">${fleetAgeText(e.dateOfPurchase)}</span>
+    ${priorityBadgeHtml(fleetPriority(e.dateOfPurchase))}
+  </div>`).join('');
+  panel.style.display = 'block';
+}
+
+// ── Dashboard Fleet Intelligence widget ───────────────────────────────────────
+
+function renderFleetWidget() {
+  const container = document.getElementById('dash-fleet-widget');
+  if (!container) return;
+  const equip = appState.equipment || [];
+  if (!equip.length) {
+    container.innerHTML = `<div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+      Fleet Intelligence
+      <div style="display:flex;gap:8px">
+        <button class="btn-save" onclick="openFleetSearch()" style="font-size:12px;padding:6px 14px;background:#1b5e20">🔍 Search Fleet</button>
+        <button class="btn-icon" onclick="switchTab('leads')" style="font-size:12px">Import UIO →</button>
+      </div>
+    </div>
+    <div style="color:#aaa;font-size:13px;padding:8px 0">No fleet data yet — click 📥 Import UIO / Fleet in the Contacts/Leads tab to get started.</div>`;
+    return;
+  }
+  const high        = equip.filter(e => fleetPriority(e.dateOfPurchase) === 'high');
+  const medium      = equip.filter(e => fleetPriority(e.dateOfPurchase) === 'medium');
+  const custWithHigh = new Set(high.map(e => e.leadId)).size;
+  container.innerHTML = `<div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+    Fleet Intelligence
+    <div style="display:flex;gap:8px">
+      <button class="btn-save" onclick="openFleetSearch()" style="font-size:12px;padding:6px 14px;background:#1b5e20">🔍 Search Fleet</button>
+      <button class="btn-icon" onclick="setFleetReplFilter()" style="font-size:12px">View Replacement Opps →</button>
+    </div>
+  </div>
+  <div class="fleet-widget-stats">
+    <div class="fleet-stat-pill">
+      <div class="fsn" style="color:#1a1a1a">${equip.length}</div>
+      <div class="fsl">Total Units</div>
+    </div>
+    <div class="fleet-stat-pill" style="background:#fce4e4">
+      <div class="fsn" style="color:#c62828">${high.length}</div>
+      <div class="fsl" style="color:#c62828">High Priority<br>(10+ yrs)</div>
+    </div>
+    <div class="fleet-stat-pill" style="background:#fff8e1">
+      <div class="fsn" style="color:#e65100">${medium.length}</div>
+      <div class="fsl" style="color:#e65100">Aging Fleet<br>(7–10 yrs)</div>
+    </div>
+    <div class="fleet-stat-pill" style="background:#fce4e4">
+      <div class="fsn" style="color:#c62828">${custWithHigh}</div>
+      <div class="fsl" style="color:#c62828">Customers w/<br>High Priority</div>
+    </div>
+  </div>`;
+}
+
+function setFleetReplFilter() {
+  const sel = document.getElementById('leads-filter-fleet');
+  if (sel) { sel.value = 'replacement_opp'; }
+  switchTab('leads');
+  renderLeadsList();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FLEET SEARCH
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openFleetSearch() {
+  const eq  = appState.equipment || [];
+  const leads = appState.leads || [];
+  const agingLeads = leads.filter(l => l.fleetSize || l.lastOrderDate);
+  console.log('[Fleet Search] Equipment records:', eq.length, '| Aging Report leads:', agingLeads.length, '| Total leads:', leads.length);
+  if (eq.length > 0)        console.log('[Fleet Search] UIO sample:', JSON.stringify(eq[0]));
+  if (agingLeads.length > 0) console.log('[Fleet Search] Aging sample:', JSON.stringify({ companyName: agingLeads[0].companyName, fleetSize: agingLeads[0].fleetSize, lastOrderDate: agingLeads[0].lastOrderDate, county: agingLeads[0].county, zip: agingLeads[0].zip }));
+  fsPopulateModels();
+  fsPopulateCounties();
+  renderSavedSearchChips();
+  document.getElementById('overlay-fleet-search').classList.add('open');
+}
+
+function fsShowRawData() {
+  const eq = appState.equipment || [];
+  const leads = appState.leads || [];
+  const uioLeads = leads.filter(l => l.leadSource === 'uio_import');
+
+  let html = `<div style="font-family:monospace;font-size:12px;background:#1a1a1a;color:#e0e0e0;padding:16px;border-radius:8px;overflow-y:auto;max-height:70vh">`;
+  html += `<div style="color:#ffcc00;font-weight:700;margin-bottom:12px;font-size:13px">🔬 Fleet Data Store Diagnostic</div>`;
+  const agingLeads = leads.filter(l => l.fleetSize || l.lastOrderDate);
+  html += `<div style="color:#aaa;margin-bottom:4px">Total leads in store: <b style="color:#fff">${leads.length}</b></div>`;
+  html += `<div style="color:#aaa;margin-bottom:4px">UIO-imported leads: <b style="color:#fff">${uioLeads.length}</b></div>`;
+  html += `<div style="color:#aaa;margin-bottom:4px">Aging Report leads (fleetSize or lastOrder): <b style="color:${agingLeads.length > 0 ? '#4caf50' : '#888'}">${agingLeads.length}</b></div>`;
+  html += `<div style="color:#aaa;margin-bottom:16px">UIO equipment records: <b style="color:${eq.length > 0 ? '#4caf50' : '#888'}">${eq.length}</b></div>`;
+
+  if (eq.length === 0) {
+    html += `<div style="color:#ff9800;padding:12px;background:#2a1a00;border-radius:6px;margin-bottom:12px">
+      <b>How to import fleet data:</b><br>
+      1. Go to <b>Contacts / Leads</b> tab<br>
+      2. Click <b>📥 Import UIO / Fleet</b> button<br>
+      3. Select your UIO Excel file<br>
+      4. Click <b>✔ Confirm Import</b><br>
+      5. Return here and search
+    </div>`;
+  } else {
+    html += `<div style="color:#4caf50;margin-bottom:8px;font-size:11px">Showing first 10 of ${eq.length} records — field names confirmed:</div>`;
+    eq.slice(0, 10).forEach((e, i) => {
+      const age = e.dateOfPurchase ? `${fleetAgeYears(e.dateOfPurchase).toFixed(1)} yrs` : 'no date';
+      html += `<div style="background:#252525;border-radius:4px;padding:10px;margin-bottom:8px;border-left:3px solid #555">`;
+      html += `<div style="color:#888;font-size:10px;margin-bottom:4px">Record ${i + 1}</div>`;
+      html += `<table style="width:100%;border-collapse:collapse">`;
+      [
+        ['id',             e.id],
+        ['leadId',         e.leadId],
+        ['companyName',    e.companyName],
+        ['model',          e.model],
+        ['serialNumber',   e.serialNumber],
+        ['zip',            `${JSON.stringify(e.zip)} (${typeof e.zip})`],
+        ['city',           e.city],
+        ['state',          e.state],
+        ['dateOfPurchase', `${JSON.stringify(e.dateOfPurchase)} → ${age}`],
+        ['notes',          e.notes || '(empty)'],
+      ].forEach(([k, v]) => {
+        html += `<tr><td style="color:#7cb8ff;padding:1px 8px 1px 0;white-space:nowrap">${k}:</td><td style="color:#e0e0e0">${v == null ? '<span style="color:#888">null</span>' : String(v)}</td></tr>`;
+      });
+      html += `</table></div>`;
+    });
+  }
+  html += `</div>`;
+
+  const win = window.open('', '_blank', 'width=700,height=600');
+  if (!win) { toast('Pop-up blocked — allow pop-ups and try again', 'error'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><title>Fleet Raw Data</title></head><body style="margin:0;padding:16px;background:#111">${html}</body></html>`);
+  win.document.close();
+}
+
+function closeFleetSearch() {
+  document.getElementById('overlay-fleet-search').classList.remove('open');
+}
+
+function fsPopulateModels() {
+  const models = [...new Set((appState.equipment || []).map(e => e.model).filter(Boolean))].sort();
+  const sel = document.getElementById('fs-model');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All Models</option>';
+  for (const m of models) {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  }
+  if (prev) sel.value = prev;
+}
+
+function fsPopulateCounties() {
+  const counties = [...new Set((appState.leads || []).map(l => l.county).filter(Boolean))].sort();
+  const sel = document.getElementById('fs-county');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All Counties</option>';
+  for (const c of counties) {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  }
+  if (prev) sel.value = prev;
+}
+
+function fsMyTerritory() {
+  document.getElementById('fs-zip').value = getTerritoryZips().join(', ');
+}
+
+function fsClearFilters() {
+  ['fs-zip','fs-city','fs-purchased-before','fs-purchased-after'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['fs-county','fs-model','fs-age','fs-last-order','fs-priority','fs-min-units'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('fs-result-count').textContent = 'Filters cleared';
+  document.getElementById('fs-results').innerHTML = `<div style="text-align:center;padding:60px 24px;color:#aaa">
+    <div style="font-size:48px;margin-bottom:12px">🔍</div>
+    <div style="font-size:15px">Set filters and click Search</div>
+  </div>`;
+  window._fsCurrentResults = [];
+}
+
+function fsQuickProspect() {
+  document.getElementById('fs-zip').value  = getTerritoryZips().join(', ');
+  document.getElementById('fs-city').value = '';
+  document.getElementById('fs-county').value = '';
+  document.getElementById('fs-purchased-before').value = '';
+  document.getElementById('fs-purchased-after').value  = '';
+  document.getElementById('fs-model').value      = '';
+  document.getElementById('fs-age').value        = '10';
+  document.getElementById('fs-last-order').value = '10';
+  document.getElementById('fs-priority').value   = '';
+  document.getElementById('fs-min-units').value  = '';
+  document.getElementById('fs-sort').value       = 'urgency';
+  runFleetSearch();
+}
+
+function getFleetSearchFilters() {
+  return {
+    zips:              (document.getElementById('fs-zip')?.value || '').split(',').map(z => z.trim().padStart(5,'0').slice(0,5)).filter(z => z && z !== '00000'),
+    city:              (document.getElementById('fs-city')?.value || '').trim().toLowerCase(),
+    county:            (document.getElementById('fs-county')?.value || '').trim(),
+    purchasedBefore:   document.getElementById('fs-purchased-before')?.value || '',
+    purchasedAfter:    document.getElementById('fs-purchased-after')?.value  || '',
+    model:             document.getElementById('fs-model')?.value || '',
+    ageMin:            Number(document.getElementById('fs-age')?.value || 0),
+    lastOrderMinYears: Number(document.getElementById('fs-last-order')?.value || 0),
+    priority:          document.getElementById('fs-priority')?.value || '',
+    minUnits:          Number(document.getElementById('fs-min-units')?.value || 0),
+    sort:              document.getElementById('fs-sort')?.value || 'urgency',
+  };
+}
+
+function runFleetSearch() {
+  try {
+    const f        = getFleetSearchFilters();
+    const equipment = appState.equipment || [];
+    const leads     = appState.leads     || [];
+
+    // Both UIO and Aging Report data feed Fleet Search
+    const agingLeads = leads.filter(l => l.fleetSize || l.lastOrderDate);
+    const hasEquip   = equipment.length > 0;
+    const hasAging   = agingLeads.length > 0;
+
+    console.log('[Fleet Search] Filters:', JSON.stringify(f));
+    console.log('[Fleet Search] Data sources — UIO units:', equipment.length, '| Aging Report leads:', agingLeads.length);
+    // Log 5 samples across both sources
+    equipment.slice(0, 3).forEach((e, i) => console.log(`  UIO[${i}]:`, JSON.stringify({ model: e.model, zip: e.zip, dateOfPurchase: e.dateOfPurchase, leadId: e.leadId })));
+    agingLeads.slice(0, 2).forEach((l, i) => console.log(`  Aging[${i}]:`, JSON.stringify({ companyName: l.companyName, fleetSize: l.fleetSize, lastOrderDate: l.lastOrderDate, county: l.county, zip: l.zip })));
+
+    if (!hasEquip && !hasAging) {
+      document.getElementById('fs-result-count').textContent = 'No fleet data imported yet';
+      document.getElementById('fs-results').innerHTML = `<div style="text-align:center;padding:60px 24px;color:#aaa">
+        <div style="font-size:48px;margin-bottom:12px">📭</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#555">No Fleet Data Imported Yet</div>
+        <div style="font-size:13px;margin-bottom:16px">Import <b>📥 UIO / Fleet</b> for individual unit details or <b>📋 Aging Report</b> for fleet size and last order data.</div>
+        <button class="btn-save" onclick="closeFleetSearch();switchTab('leads')" style="font-size:13px">Go to Contacts / Leads →</button>
+      </div>`;
+      return;
+    }
+
+    // Build equipment index by leadId
+    const equipMap = new Map();
+    for (const e of equipment) {
+      if (!e.leadId) continue;
+      if (!equipMap.has(e.leadId)) equipMap.set(e.leadId, []);
+      equipMap.get(e.leadId).push(e);
+    }
+
+    // Candidate leads: any lead with equipment OR aging report data
+    const candidateIds = new Set([
+      ...equipMap.keys(),
+      ...agingLeads.map(l => l.id),
+    ]);
+
+    const unitFiltersActive = f.model || f.purchasedBefore || f.purchasedAfter || f.ageMin > 0 || f.priority;
+
+    let results = [];
+    for (const leadId of candidateIds) {
+      const lead = leads.find(l => l.id === leadId);
+      if (!lead) continue;
+
+      const units   = equipMap.get(leadId) || [];
+      const hasUIO  = units.length > 0;
+      const hasAg   = !!(lead.fleetSize || lead.lastOrderDate);
+
+      // ── Unit-level filters (model/date/age/priority) ──────────────────────
+      let matchingUnits = units;
+      let passesFromAging = false;
+
+      if (unitFiltersActive) {
+        matchingUnits = units.filter(e => {
+          if (f.model && !(e.model || '').toLowerCase().includes(f.model.toLowerCase())) return false;
+          if (f.purchasedBefore && e.dateOfPurchase && e.dateOfPurchase >= f.purchasedBefore) return false;
+          if (f.purchasedAfter  && e.dateOfPurchase && e.dateOfPurchase <= f.purchasedAfter)  return false;
+          if (f.ageMin > 0 && fleetAgeYears(e.dateOfPurchase) < f.ageMin) return false;
+          if (f.priority && fleetPriority(e.dateOfPurchase) !== f.priority) return false;
+          return true;
+        });
+
+        // If no matching UIO units, check if aging data satisfies age/priority
+        // (model and date-range filters are UIO-only; ageMin and priority can use lastOrderDate)
+        if (matchingUnits.length === 0) {
+          if (hasAg && !f.model && !f.purchasedBefore && !f.purchasedAfter) {
+            const loYears = lead.lastOrderDate ? fleetAgeYears(lead.lastOrderDate) : 0;
+            const loPri   = lead.lastOrderDate ? fleetPriority(lead.lastOrderDate) : 'low';
+            const ageOk   = !f.ageMin     || loYears >= f.ageMin;
+            const priOk   = !f.priority   || loPri   === f.priority;
+            passesFromAging = ageOk && priOk;
+          }
+          if (!passesFromAging) continue;
+        }
+      }
+
+      // ── Location filters ──────────────────────────────────────────────────
+      if (f.zips.length > 0) {
+        const leadZip  = String(lead.zip || '').trim().padStart(5,'0').slice(0,5);
+        const unitZips = units.map(e => String(e.zip || '').trim().padStart(5,'0').slice(0,5));
+        if (!f.zips.includes(leadZip) && !unitZips.some(z => f.zips.includes(z))) continue;
+      }
+      if (f.city) {
+        const lc = (lead.city || '').toLowerCase();
+        const uc = units.some(e => (e.city || '').toLowerCase().includes(f.city));
+        if (!lc.includes(f.city) && !uc) continue;
+      }
+      if (f.county) {
+        if (!(lead.county || '').toLowerCase().includes(f.county.toLowerCase())) continue;
+      }
+      if (f.lastOrderMinYears > 0) {
+        const loYears = lead.lastOrderDate ? fleetAgeYears(lead.lastOrderDate) : 0;
+        if (loYears < f.lastOrderMinYears) continue;
+      }
+
+      // ── Min fleet size: use UIO count, then lead.fleetSize as fallback ────
+      const effectiveCount = matchingUnits.length > 0 ? matchingUnits.length : (lead.fleetSize || 0);
+      if (f.minUnits > 0 && effectiveCount < f.minUnits) continue;
+
+      // ── Build result object ───────────────────────────────────────────────
+      const byAge  = [...matchingUnits].sort((a,b) => fleetAgeMs(b.dateOfPurchase) - fleetAgeMs(a.dateOfPurchase));
+      const byDate = [...matchingUnits].filter(e => e.dateOfPurchase).sort((a,b) => b.dateOfPurchase.localeCompare(a.dateOfPurchase));
+
+      // Priority: worst of oldest UIO unit AND last order date
+      let topP = 'low';
+      if (matchingUnits.length > 0) {
+        topP = matchingUnits.some(e => fleetPriority(e.dateOfPurchase) === 'high')   ? 'high'
+             : matchingUnits.some(e => fleetPriority(e.dateOfPurchase) === 'medium') ? 'medium' : 'low';
+      }
+      if (lead.lastOrderDate) {
+        const lop = fleetPriority(lead.lastOrderDate);
+        if (lop === 'high' || (lop === 'medium' && topP === 'low')) topP = lop;
+      }
+
+      // Urgency score: cross-referenced companies (both sources) rank highest
+      const pScore = topP === 'high' ? 3 : topP === 'medium' ? 2 : 1;
+      const crossRef = hasUIO && hasAg;
+      const urgencyScore = pScore * (crossRef ? 2 : 1);
+
+      results.push({
+        lead, units: matchingUnits, oldest: byAge[0] || null,
+        lastPurchase: byDate[0]?.dateOfPurchase || '',
+        topPriority: topP, unitCount: effectiveCount,
+        hasUIO, hasAging: hasAg, crossRef, urgencyScore,
+      });
+    }
+
+    console.log('[Fleet Search] Results:', results.length, 'companies — UIO+Aging:', results.filter(r => r.crossRef).length, '| UIO-only:', results.filter(r => r.hasUIO && !r.hasAging).length, '| Aging-only:', results.filter(r => r.hasAging && !r.hasUIO).length);
+
+    // ── Sort ─────────────────────────────────────────────────────────────────
+    const _oldestDate = r => r.oldest?.dateOfPurchase || r.lead.lastOrderDate || '';
+    const s = f.sort;
+    if (s === 'urgency') {
+      results.sort((a,b) => {
+        if (b.urgencyScore !== a.urgencyScore) return b.urgencyScore - a.urgencyScore;
+        return fleetAgeMs(_oldestDate(b)) - fleetAgeMs(_oldestDate(a));
+      });
+    } else if (s === 'oldest') {
+      results.sort((a,b) => fleetAgeMs(_oldestDate(b)) - fleetAgeMs(_oldestDate(a)));
+    } else if (s === 'most-units') results.sort((a,b) => b.unitCount - a.unitCount);
+    else if (s === 'name') results.sort((a,b) => (a.lead.companyName||'').localeCompare(b.lead.companyName||''));
+    else if (s === 'zip')  results.sort((a,b) => (a.lead.zip||'').localeCompare(b.lead.zip||''));
+
+    window._fsCurrentResults = results;
+    renderFleetSearchResults(results);
+  } catch (err) {
+    console.error('[Fleet Search] Error:', err);
+    toast('Fleet Search error: ' + err.message, 'error');
+    document.getElementById('fs-result-count').textContent = 'Search error — check DevTools console (F12)';
+  }
+}
+
+function renderFleetSearchResults(results) {
+  const countEl   = document.getElementById('fs-result-count');
+  const container = document.getElementById('fs-results');
+  const crossCount = results.filter(r => r.crossRef).length;
+  countEl.textContent = `${results.length} compan${results.length === 1 ? 'y' : 'ies'} found${crossCount > 0 ? ` · ${crossCount} cross-referenced` : ''}`;
+
+  if (!results.length) {
+    container.innerHTML = `<div style="text-align:center;padding:60px 24px;color:#aaa">
+      <div style="font-size:48px;margin-bottom:12px">🔍</div>
+      <div style="font-size:15px">No results — try adjusting your filters or click ⚡ Quick Prospect</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = results.map(r => {
+    const l = r.lead;
+    const contact   = [l.firstName, l.lastName].filter(Boolean).join(' ') || l.contactName || '';
+    const phone     = l.phone || '';
+    const phoneHtml = phone
+      ? `<a href="tel:${esc(phone)}" style="color:#1565c0;font-weight:700;text-decoration:none;font-size:14px" onclick="event.stopPropagation()">${esc(phone)}</a>`
+      : `<span style="color:#bbb;font-size:13px">No phone on file</span>`;
+
+    const pColor = r.topPriority === 'high' ? '#c62828' : r.topPriority === 'medium' ? '#e65100' : '#2e7d32';
+    const pBg    = r.topPriority === 'high' ? '#fce4e4' : r.topPriority === 'medium' ? '#fff8e1' : '#e8f5e9';
+    const pLabel = r.topPriority === 'high' ? '🔴 High' : r.topPriority === 'medium' ? '🟡 Medium' : '🟢 Low';
+
+    const dunsHint  = (l.duns && l.duns.toLowerCase().trim() !== (l.companyName||'').toLowerCase().trim())
+      ? `<span style="color:#888;font-size:12px;font-weight:400"> (${esc(l.duns)})</span>` : '';
+    const location  = [l.city, l.zip].filter(Boolean).join(', ');
+    const county    = l.county ? ` · ${esc(l.county)} Co.` : '';
+    const allModels = [...new Set(r.units.map(e => e.model).filter(Boolean))].join(', ');
+
+    // Cross-reference badge
+    const crossBadge = r.crossRef
+      ? `<span style="background:#e8eaf6;color:#3f51b5;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px">↔ UIO + Aging</span>` : '';
+
+    // Fleet size display
+    const fleetSizeLabel = r.hasAging && l.fleetSize
+      ? `<span style="font-weight:700;color:#1565c0">${l.fleetSize}</span> units (Aging Report)`
+      : r.hasUIO
+      ? `<span style="font-weight:700;color:#1565c0">${r.unitCount}</span> unit${r.unitCount !== 1 ? 's' : ''} (UIO)`
+      : `<span style="color:#aaa">—</span>`;
+
+    // Data rows
+    const rows = [];
+
+    // Fleet size
+    rows.push(`<div class="fs-detail-item">
+      <span class="fs-detail-label">Fleet Size</span>
+      <span class="fs-detail-val">${fleetSizeLabel}</span>
+    </div>`);
+
+    // Last Order (from Aging Report)
+    if (l.lastOrderDate) {
+      rows.push(`<div class="fs-detail-item">
+        <span class="fs-detail-label">Last Order</span>
+        <span class="fs-detail-val"><b>${lastOrderAgeText(l.lastOrderDate)}</b></span>
+      </div>`);
+    }
+
+    // Oldest Unit (from UIO)
+    if (r.oldest) {
+      rows.push(`<div class="fs-detail-item">
+        <span class="fs-detail-label">Oldest Unit</span>
+        <span class="fs-detail-val">${esc(r.oldest.model || '—')} &mdash; <b>${fleetAgeText(r.oldest.dateOfPurchase)}</b></span>
+      </div>`);
+    }
+
+    // Models on record
+    if (allModels) {
+      rows.push(`<div class="fs-detail-item">
+        <span class="fs-detail-label">Models</span>
+        <span class="fs-detail-val">${esc(allModels)}</span>
+      </div>`);
+    }
+
+    // Contact
+    rows.push(`<div class="fs-detail-item">
+      <span class="fs-detail-label">Contact</span>
+      <span class="fs-detail-val" style="font-size:14px">${contact ? esc(contact) + ' &mdash; ' : ''}${phoneHtml}</span>
+    </div>`);
+
+    return `<div class="fs-result-card">
+      <div class="fs-result-header">
+        <div style="flex:1;min-width:0">
+          <div class="fs-company-name">${esc(l.companyName || '—')}${dunsHint}${crossBadge}</div>
+          <div class="fs-company-meta">${esc(location || '—')}${county}${l.outsideTerritory ? '<span class="badge outside-territory" style="margin-left:6px">Out of Territory</span>' : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+          <span class="badge" style="background:${pBg};color:${pColor};font-size:12px;padding:3px 10px">${pLabel} Priority</span>
+        </div>
+      </div>
+      <div class="fs-result-details">${rows.join('')}</div>
+      <div class="fs-result-actions">
+        <button class="btn-icon" style="font-size:13px;padding:7px 14px" onclick="fsViewProfile('${l.id}')">View Profile</button>
+        <button class="btn-save" style="font-size:13px;padding:7px 16px" onclick="fsStartQuote('${l.id}')">Start Quote →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fsViewProfile(leadId) {
+  closeFleetSearch();
+  setTimeout(() => { switchTab('leads'); openLeadProfile(leadId); }, 150);
+}
+
+function fsStartQuote(leadId) {
+  closeFleetSearch();
+  setTimeout(() => startQuoteFromLead(leadId), 150);
+}
+
+// ── Saved Searches ────────────────────────────────────────────────────────────
+
+function fsSaveSearch() {
+  const name = prompt('Name this search (e.g. "Kennesaw High Priority"):');
+  if (!name || !name.trim()) return;
+  if (!appState.settings.savedFleetSearches) appState.settings.savedFleetSearches = [];
+  appState.settings.savedFleetSearches.push({ id: genId('ss'), name: name.trim(), filters: getFleetSearchFilters() });
+  saveData();
+  renderSavedSearchChips();
+  toast('Search saved: ' + name.trim());
+}
+
+function renderSavedSearchChips() {
+  const saved = (appState.settings && appState.settings.savedFleetSearches) || [];
+  const container = document.getElementById('fs-saved-chips');
+  if (!container) return;
+  if (!saved.length) {
+    container.innerHTML = '<span style="font-size:12px;color:#bbb">No saved searches yet — run a search and click 💾 Save Search</span>';
+    return;
+  }
+  container.innerHTML = saved.map(s =>
+    `<span class="fs-saved-chip" onclick="fsLoadSavedSearch('${s.id}')">${esc(s.name)}<button onclick="event.stopPropagation();fsDeleteSavedSearch('${s.id}')" title="Remove" style="background:none;border:none;cursor:pointer;color:#8899cc;font-size:15px;line-height:1;padding:0 0 0 4px">×</button></span>`
+  ).join('');
+}
+
+function fsLoadSavedSearch(id) {
+  const s = ((appState.settings && appState.settings.savedFleetSearches) || []).find(x => x.id === id);
+  if (!s) return;
+  const f = s.filters;
+  document.getElementById('fs-zip').value  = (f.zips || []).join(', ');
+  document.getElementById('fs-city').value = f.city || '';
+  document.getElementById('fs-county').value = f.county || '';
+  document.getElementById('fs-purchased-before').value = f.purchasedBefore || '';
+  document.getElementById('fs-purchased-after').value  = f.purchasedAfter  || '';
+  document.getElementById('fs-model').value      = f.model    || '';
+  document.getElementById('fs-age').value        = f.ageMin            ? String(f.ageMin)            : '';
+  document.getElementById('fs-last-order').value = f.lastOrderMinYears ? String(f.lastOrderMinYears) : '';
+  document.getElementById('fs-priority').value   = f.priority  || '';
+  document.getElementById('fs-min-units').value  = f.minUnits  ? String(f.minUnits)  : '';
+  document.getElementById('fs-sort').value       = f.sort      || 'urgency';
+  runFleetSearch();
+}
+
+function fsDeleteSavedSearch(id) {
+  if (!appState.settings.savedFleetSearches) return;
+  appState.settings.savedFleetSearches = appState.settings.savedFleetSearches.filter(s => s.id !== id);
+  saveData();
+  renderSavedSearchChips();
+}
+
+// ── Export & Print ────────────────────────────────────────────────────────────
+
+function fsExportExcel() {
+  const results = window._fsCurrentResults || [];
+  if (!results.length) { toast('No results to export — run a search first', 'error'); return; }
+  const headers = ['Company','Address','City','Zip','Contact Name','Phone','Models on Record','Oldest Unit Age','Last Purchase Date','Replacement Priority','Unit Count'];
+  const rows = results.map(r => {
+    const l = r.lead;
+    return [
+      l.companyName || '', l.street || '', l.city || '', l.zip || '',
+      [l.firstName, l.lastName].filter(Boolean).join(' ') || l.contactName || '',
+      l.phone || '',
+      [...new Set(r.units.map(e => e.model).filter(Boolean))].join(', '),
+      fleetAgeText(r.oldest?.dateOfPurchase),
+      r.lastPurchase ? formatDate(r.lastPurchase) : '',
+      r.topPriority === 'high' ? 'High' : r.topPriority === 'medium' ? 'Medium' : 'Low',
+      r.unitCount,
+    ];
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fleet Search Results');
+  XLSX.writeFile(wb, `AFL_Fleet_Search_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Exported to Excel');
+}
+
+function fsPrint() {
+  const results = window._fsCurrentResults || [];
+  if (!results.length) { toast('No results to print — run a search first', 'error'); return; }
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  let rows = results.map(r => {
+    const l = r.lead;
+    const contact = [l.firstName, l.lastName].filter(Boolean).join(' ') || l.contactName || '';
+    const pClass  = r.topPriority === 'high' ? 'ph' : r.topPriority === 'medium' ? 'pm' : 'pl';
+    const pLabel  = r.topPriority === 'high' ? 'High' : r.topPriority === 'medium' ? 'Medium' : 'Low';
+    return `<tr><td><b>${l.companyName||''}</b></td><td>${[l.city,l.zip].filter(Boolean).join(', ')}</td><td style="text-align:center">${r.unitCount}</td><td>${r.oldest?.model||'—'}</td><td><b>${fleetAgeText(r.oldest?.dateOfPurchase)}</b></td><td class="${pClass}">${pLabel}</td><td>${contact}</td><td>${l.phone||''}</td></tr>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html><head><title>AFL Fleet Search — ${dateStr}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#222}h2{font-size:15px;margin:0 0 4px}p{color:#666;font-size:11px;margin:0 0 14px}table{width:100%;border-collapse:collapse}th{background:#f0f0f0;text-align:left;padding:6px 8px;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:6px 8px;border-bottom:1px solid #eee}tr:nth-child(even)td{background:#fafafa}.ph{color:#c62828;font-weight:700}.pm{color:#e65100;font-weight:700}.pl{color:#2e7d32;font-weight:700}@media print{body{margin:0}}</style>
+  </head><body><h2>AFL Sales Tracker — Fleet Search Results</h2><p>${dateStr} &middot; ${results.length} companies</p>
+  <table><thead><tr><th>Company</th><th>City, Zip</th><th>Units</th><th>Oldest Model</th><th>Age</th><th>Priority</th><th>Contact</th><th>Phone</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  const win = window.open('', '_blank', 'width=960,height=720');
+  if (!win) { toast('Pop-up blocked — please allow pop-ups and try again', 'error'); return; }
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGING REPORT IMPORT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _arCleanZip(val) {
+  if (val === undefined || val === null || val === '') return '';
+  const s = String(val).trim().replace(/\.0+$/, '');
+  if (!s || s.toLowerCase() === 'nan') return '';
+  return s.padStart(5, '0').slice(0, 5);
+}
+
+function _arCleanPhone(val) {
+  if (val === undefined || val === null) return '';
+  const s = String(val).trim();
+  if (!s || s.toLowerCase() === 'nan' || s === '0') return '';
+  const digits = s.replace(/\D/g, '');
+  if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+  return s;
+}
+
+function _arCleanInt(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  return Math.round(Number(val)) || 0;
+}
+
+function _arMonthsToDate(months) {
+  const n = Math.max(0, Math.round(Number(months) || 0));
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+function lastOrderAgeText(dateStr) {
+  if (!dateStr) return '—';
+  const ms = Date.now() - new Date(dateStr + 'T00:00:00').getTime();
+  if (ms < 0) return 'recently';
+  const totalMonths = Math.floor(ms / (30.44 * 24 * 3600 * 1000));
+  const yrs = Math.floor(totalMonths / 12);
+  const mos = totalMonths % 12;
+  if (yrs === 0) return mos + ' mo ago';
+  if (mos === 0) return yrs + ' yr' + (yrs !== 1 ? 's' : '') + ' ago';
+  return yrs + ' yr ' + mos + ' mo ago';
+}
+
+function _arFindMatch(custName, dunsName, zip) {
+  const z = zip ? String(zip).padStart(5,'0').slice(0,5) : '';
+  const norm = s => (s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+  const nc = norm(custName), nd = norm(dunsName);
+
+  // Pass 1: exact name + zip match (customer name)
+  for (const l of appState.leads) {
+    const lz = String(l.zip || '').padStart(5,'0').slice(0,5);
+    if (z && lz !== z) continue;
+    if (nc && norm(l.companyName) === nc) return { lead: l, type: 'exact', sim: 1, matchedOn: 'customer' };
+  }
+  // Pass 2: exact DUNS name + zip match
+  if (nd && nd !== nc) {
+    for (const l of appState.leads) {
+      const lz = String(l.zip || '').padStart(5,'0').slice(0,5);
+      if (z && lz !== z) continue;
+      if (norm(l.companyName) === nd) return { lead: l, type: 'exact', sim: 1, matchedOn: 'duns' };
+      if (l.duns && norm(l.duns) === nd) return { lead: l, type: 'exact', sim: 1, matchedOn: 'duns_field' };
+    }
+  }
+  // Pass 3: fuzzy ≥ 0.80 + same zip
+  let best = null;
+  for (const l of appState.leads) {
+    const lz = String(l.zip || '').padStart(5,'0').slice(0,5);
+    if (z && lz !== z) continue;
+    const simC = _nameSimilarity(custName, l.companyName);
+    const simD = dunsName ? _nameSimilarity(dunsName, l.companyName) : 0;
+    const sim  = Math.max(simC, simD);
+    if (sim >= 0.80 && (!best || sim > best.sim)) {
+      best = { lead: l, type: 'fuzzy', sim, matchedOn: simC >= simD ? 'customer' : 'duns' };
+    }
+  }
+  return best || null;
+}
+
+async function importAgingReport() {
+  const filePath = await window.aflAPI.openExcel();
+  if (!filePath) return;
+  const result = await window.aflAPI.parseExcel(filePath);
+  if (result.error) { toast('Error reading file: ' + result.error, 'error'); return; }
+  if (!result.rows || !result.rows.length) { toast('No data rows found in file', 'error'); return; }
+
+  const hdrs = result.headers.map(h => String(h).toLowerCase().trim());
+  const ci = {
+    customer: hdrs.findIndex(h => h === 'customer' || h.includes('customer')),
+    duns:     hdrs.findIndex(h => h.includes('duns')),
+    zip:      hdrs.findIndex(h => h.includes('zip')),
+    county:   hdrs.findIndex(h => h.includes('county')),
+    address:  hdrs.findIndex(h => h.includes('address')),
+    city:     hdrs.findIndex(h => h.includes('city')),
+    state:    hdrs.findIndex(h => h.includes('state')),
+    phone:    hdrs.findIndex(h => h.includes('phone')),
+    retail:   hdrs.findIndex(h => h.includes('retail') || h.includes('orders')),
+    months:   hdrs.findIndex(h => h.includes('month') || (h.includes('last') && h.includes('order'))),
+  };
+
+  console.log('[Aging Import] Headers detected:', JSON.stringify(ci));
+
+  const parsed = result.rows.map(r => ({
+    customer: String(r[ci.customer] ?? '').trim(),
+    duns:     ci.duns >= 0 ? String(r[ci.duns] ?? '').trim() : '',
+    zip:      _arCleanZip(ci.zip >= 0 ? r[ci.zip] : ''),
+    county:   ci.county >= 0 ? String(r[ci.county] ?? '').trim() : '',
+    address:  ci.address >= 0 ? String(r[ci.address] ?? '').trim() : '',
+    city:     ci.city >= 0 ? String(r[ci.city] ?? '').trim() : '',
+    state:    ci.state >= 0 ? String(r[ci.state] ?? '').trim() : 'GA',
+    phone:    _arCleanPhone(ci.phone >= 0 ? r[ci.phone] : ''),
+    fleetSize:_arCleanInt(ci.retail >= 0 ? r[ci.retail] : 0),
+    months:   ci.months >= 0 ? Math.round(Number(r[ci.months]) || 0) : 0,
+  })).filter(r => r.customer);
+
+  if (!parsed.length) { toast('No valid rows found — check that column names match the expected format', 'error'); return; }
+
+  const territoryZips = getTerritoryZips();
+  let exactCount = 0, fuzzyCount = 0, newCount = 0, outsideCount = 0, errorCount = 0;
+  const previewRows = parsed.slice(0, 25).map(r => {
+    const match = _arFindMatch(r.customer, r.duns, r.zip);
+    const outside = r.zip && !territoryZips.includes(r.zip);
+    if (outside) outsideCount++;
+    const badge = match
+      ? (match.type === 'exact'
+          ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;font-size:10px">✔ Match (${Math.round(match.sim*100)}%)</span>`
+          : `<span class="badge" style="background:#fff8e1;color:#e65100;font-size:10px">~ Fuzzy (${Math.round(match.sim*100)}%)</span>`)
+      : `<span class="badge" style="background:#e3f2fd;color:#1565c0;font-size:10px">+ New</span>`;
+    return `<tr>
+      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.customer)}">${esc(r.customer)}</td>
+      <td style="font-size:11px;color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.duns)}">${esc(r.duns || '—')}</td>
+      <td>${esc(r.zip || '—')}</td>
+      <td style="text-align:center">${r.fleetSize || '—'}</td>
+      <td>${badge}${outside ? `<span class="badge outside-territory" style="margin-left:3px;font-size:10px">Out</span>` : ''}</td>
+    </tr>`;
+  });
+
+  // Full count pass
+  parsed.forEach(r => {
+    const match = _arFindMatch(r.customer, r.duns, r.zip);
+    if (!match) newCount++;
+    else if (match.type === 'exact') exactCount++;
+    else fuzzyCount++;
+  });
+
+  window._arPendingRows = parsed;
+
+  document.getElementById('modal-aging-body').innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+      ${[
+        ['Total Rows', parsed.length, '#1a1a1a','#f5f5f5'],
+        ['Auto-Matched', exactCount, '#2e7d32','#e8f5e9'],
+        ['Fuzzy Match', fuzzyCount, '#e65100','#fff8e1'],
+        ['New Records', newCount, '#1565c0','#e3f2fd'],
+        ['Outside Territory', outsideCount, '#6a1b9a','#f3e5f5'],
+      ].map(([l,v,c,bg]) => `<div style="background:${bg};border-radius:8px;padding:10px 18px;text-align:center"><div style="font-size:20px;font-weight:700;color:${c}">${v}</div><div style="font-size:11px;color:${c};text-transform:uppercase;letter-spacing:.4px">${l}</div></div>`).join('')}
+    </div>
+    <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-bottom:8px">
+      <table class="import-preview-table">
+        <thead><tr><th>Customer</th><th>DUNS Name</th><th>Zip</th><th>Fleet</th><th>Status</th></tr></thead>
+        <tbody>${previewRows.join('')}</tbody>
+      </table>
+    </div>
+    ${parsed.length > 25 ? `<div style="font-size:12px;color:#aaa">…and ${parsed.length - 25} more rows</div>` : ''}
+    ${fuzzyCount > 0 ? `<div style="font-size:13px;color:#e65100;margin-top:8px">⚠ ${fuzzyCount} fuzzy match${fuzzyCount !== 1 ? 'es' : ''} will be flagged for review after import.</div>` : ''}`;
+
+  document.getElementById('overlay-aging-import').classList.add('open');
+}
+
+async function confirmAgingReportImport() {
+  const rows = window._arPendingRows;
+  if (!rows || !rows.length) return;
+
+  const now = new Date().toISOString();
+  const territoryZips = getTerritoryZips();
+  let exactCount = 0, fuzzyCount = 0, newCount = 0, outsideCount = 0;
+  const fuzzyMatches = [];
+
+  for (const r of rows) {
+    const outside = r.zip && !territoryZips.includes(r.zip);
+    if (outside) outsideCount++;
+    const lastOrderDate = r.months > 0 ? _arMonthsToDate(r.months) : '';
+    const match = _arFindMatch(r.customer, r.duns, r.zip);
+
+    if (match) {
+      const l = match.lead;
+      // Always update: fleet size, last order, duns (store separately), county
+      l.fleetSize    = r.fleetSize || l.fleetSize || 0;
+      l.lastOrderDate = lastOrderDate || l.lastOrderDate || '';
+      if (r.duns && !l.duns) l.duns = r.duns;
+      if (r.county && !l.county) l.county = r.county;
+      // Only fill empty fields for address/phone/status
+      if (r.phone && !l.phone) l.phone = r.phone;
+      if (r.address && !l.street) l.street = r.address;
+      if (r.city && !l.city) l.city = r.city;
+      if (r.state && !l.state) l.state = r.state;
+      if (r.zip && !l.zip) l.zip = r.zip;
+      if (!outside) l.outsideTerritory = false;
+      else l.outsideTerritory = true;
+      if (!l.status || l.status === 'potential_customer') l.status = 'customer';
+      l.updatedAt = now;
+      if (!l.activityLog) l.activityLog = [];
+      l.activityLog.push({ date: now, type: 'aging_import', note: `Updated from Aging Report import — Fleet: ${r.fleetSize} units, Last order: ${lastOrderAgeText(lastOrderDate)}, Match: ${match.type} (${Math.round(match.sim*100)}%)` });
+
+      if (match.type === 'fuzzy') {
+        l.agingReviewFlag  = true;
+        l.agingImportedAs  = r.customer;
+        fuzzyCount++;
+        fuzzyMatches.push({ leadId: l.id, importedName: r.customer, existingName: l.companyName, sim: match.sim, zip: l.zip, rowData: r });
+      } else {
+        exactCount++;
+      }
+    } else {
+      // Create new record
+      const dunsDisplay = (r.duns && r.duns.toLowerCase().trim() !== r.customer.toLowerCase().trim()) ? r.duns : '';
+      const newLead = {
+        id: genId('l'),
+        companyName: r.customer,
+        duns: dunsDisplay,
+        county: r.county,
+        firstName: '', lastName: '', contactName: '', phone: r.phone,
+        email: '', street: r.address, city: r.city, state: r.state || 'GA', zip: r.zip,
+        industry: '', leadSource: 'aging_report_import',
+        status: 'customer',
+        fleetSize: r.fleetSize || 0,
+        lastOrderDate,
+        outsideTerritory: outside,
+        notes: '', activityLog: [{ date: now, type: 'import', note: `Imported from Aging Report — Fleet: ${r.fleetSize} units, Last order: ${lastOrderAgeText(lastOrderDate)}` }],
+        createdAt: now, updatedAt: now, lastActivityDate: now.slice(0,10),
+      };
+      appState.leads.push(newLead);
+      newCount++;
+    }
+  }
+
+  document.getElementById('overlay-aging-import').classList.remove('open');
+  await saveData();
+  renderLeads();
+  renderDashboard();
+
+  window._arFuzzyMatches = fuzzyMatches;
+  const totalUpdated = exactCount + fuzzyCount;
+  toast(`Import complete — ${totalUpdated} updated, ${newCount} new, ${fuzzyCount} need review`);
+
+  // Show post-import summary
+  const sumWin = window.open('', '_blank', 'width=600,height=480');
+  if (sumWin) {
+    sumWin.document.write(`<!DOCTYPE html><html><head><title>Aging Report Import Summary</title>
+    <style>body{font-family:Arial,sans-serif;font-size:14px;padding:24px;color:#222}h2{font-size:18px;margin:0 0 16px}
+    .stat{display:inline-block;background:#f5f5f5;border-radius:8px;padding:12px 20px;margin:4px;text-align:center}
+    .stat-n{font-size:24px;font-weight:700}.stat-l{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.4px}
+    .warn{color:#e65100}.ok{color:#2e7d32}.blue{color:#1565c0}.purple{color:#6a1b9a}</style></head>
+    <body><h2>📋 Aging Report Import — Complete</h2>
+    <div>
+      <div class="stat"><div class="stat-n">${rows.length}</div><div class="stat-l">Total Rows</div></div>
+      <div class="stat"><div class="stat-n ok">${exactCount}</div><div class="stat-l ok">Auto-Matched &amp; Updated</div></div>
+      <div class="stat"><div class="stat-n warn">${fuzzyCount}</div><div class="stat-l warn">Fuzzy Matched (Review)</div></div>
+      <div class="stat"><div class="stat-n blue">${newCount}</div><div class="stat-l blue">New Records Created</div></div>
+      <div class="stat"><div class="stat-n purple">${outsideCount}</div><div class="stat-l purple">Outside Territory</div></div>
+    </div>
+    ${fuzzyCount > 0 ? `<p style="color:#e65100;margin-top:16px">⚠ ${fuzzyCount} fuzzy match${fuzzyCount!==1?'es':''} need review. Use the <b>⚠ Review Needed</b> filter in Contacts/Leads to see them.</p>` : ''}
+    <p style="color:#888;font-size:12px;margin-top:16px">Data saved successfully. Close this window to continue.</p>
+    </body></html>`);
+    sumWin.document.close();
+  }
+
+  if (fuzzyCount > 0) {
+    setTimeout(() => openAgingReviewModal(), 400);
+  }
+}
+
+function openAgingReviewModal() {
+  const matches = window._arFuzzyMatches || [];
+  const remaining = matches.filter(m => {
+    const l = appState.leads.find(x => x.id === m.leadId);
+    return l && l.agingReviewFlag;
+  });
+  const countEl = document.getElementById('aging-review-remaining');
+  if (countEl) countEl.textContent = `${remaining.length} remaining`;
+
+  const body = document.getElementById('modal-aging-review-body');
+  if (!body) return;
+  if (!remaining.length) {
+    body.innerHTML = '<div style="text-align:center;padding:32px;color:#aaa">All matches reviewed — nothing left to review.</div>';
+    document.getElementById('overlay-aging-review').classList.add('open');
+    return;
+  }
+
+  body.innerHTML = remaining.map(m => {
+    const l = appState.leads.find(x => x.id === m.leadId);
+    if (!l) return '';
+    return `<div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px 16px;margin-bottom:10px;background:#fff">
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:10px">
+        <div style="background:#fff8e1;border-radius:6px;padding:10px 14px">
+          <div style="font-size:10px;color:#e65100;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Imported As</div>
+          <div style="font-weight:700;font-size:14px">${esc(m.importedName)}</div>
+          <div style="font-size:12px;color:#888">Zip: ${esc(m.zip || '—')}</div>
+        </div>
+        <div style="text-align:center;color:#aaa;font-size:20px">↔<br><span style="font-size:11px;color:#e65100">${Math.round(m.sim*100)}% match</span></div>
+        <div style="background:#e8f5e9;border-radius:6px;padding:10px 14px">
+          <div style="font-size:10px;color:#2e7d32;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Existing Record</div>
+          <div style="font-weight:700;font-size:14px">${esc(m.existingName)}</div>
+          <div style="font-size:12px;color:#888">Zip: ${esc(l.zip || '—')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-save" style="flex:1;font-size:13px;background:#2e7d32" onclick="agingConfirmMatch('${m.leadId}')">✔ Confirm — Same Company</button>
+        <button class="btn-icon" style="flex:1;font-size:13px;color:#c62828;border-color:#f44336" onclick="agingCreateSeparate('${m.leadId}')">✘ Different Company — Create Separate</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('overlay-aging-review').classList.add('open');
+}
+
+function agingConfirmMatch(leadId) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  l.agingReviewFlag = false;
+  delete l.agingImportedAs;
+  saveData();
+  // Refresh the review modal
+  const remaining = (window._arFuzzyMatches || []).filter(m => {
+    const lead = appState.leads.find(x => x.id === m.leadId);
+    return lead && lead.agingReviewFlag;
+  });
+  const countEl = document.getElementById('aging-review-remaining');
+  if (countEl) countEl.textContent = `${remaining.length} remaining`;
+  openAgingReviewModal();
+  toast('Match confirmed');
+}
+
+async function agingCreateSeparate(leadId) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  const m = (window._arFuzzyMatches || []).find(x => x.leadId === leadId);
+  if (!m) { agingConfirmMatch(leadId); return; }
+
+  // Undo the aging updates from this lead
+  l.agingReviewFlag = false;
+  delete l.agingImportedAs;
+  // Remove the last aging import activity log entry
+  if (l.activityLog) {
+    const idx = l.activityLog.map(a => a.type).lastIndexOf('aging_import');
+    if (idx >= 0) l.activityLog.splice(idx, 1);
+  }
+  // Restore fleet/order if they were set by this import
+  // (can't fully undo non-empty-field updates, but remove fleet/order)
+  // Create a new record for the imported data
+  const r = m.rowData;
+  const now = new Date().toISOString();
+  const lastOrderDate = r.months > 0 ? _arMonthsToDate(r.months) : '';
+  const outside = r.zip && !getTerritoryZips().includes(r.zip);
+  const newLead = {
+    id: genId('l'),
+    companyName: r.customer,
+    duns: (r.duns && r.duns.toLowerCase().trim() !== r.customer.toLowerCase().trim()) ? r.duns : '',
+    county: r.county,
+    firstName: '', lastName: '', contactName: '', phone: r.phone,
+    email: '', street: r.address, city: r.city, state: r.state || 'GA', zip: r.zip,
+    industry: '', leadSource: 'aging_report_import',
+    status: 'customer',
+    fleetSize: r.fleetSize || 0,
+    lastOrderDate,
+    outsideTerritory: outside,
+    notes: '', activityLog: [{ date: now, type: 'import', note: `Created as separate record from Aging Report (rejected fuzzy match with "${m.existingName}")` }],
+    createdAt: now, updatedAt: now, lastActivityDate: now.slice(0,10),
+  };
+  appState.leads.push(newLead);
+  await saveData();
+  renderLeads();
+  openAgingReviewModal();
+  toast('Separate record created');
+}
 </script>
 </body>
 </html>

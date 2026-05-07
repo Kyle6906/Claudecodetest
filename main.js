@@ -487,14 +487,13 @@ ipcMain.handle('leadgen:geocode', async (_event, { zip, apiKey }) => {
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
-ipcMain.handle('leadgen:maps-search', async (_event, { apiKey, query, lat, lng, radius, pageToken }) => {
+ipcMain.handle('leadgen:maps-search', async (_event, { apiKey, query, pageToken }) => {
   try {
     let url;
     if (pageToken) {
       url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${encodeURIComponent(pageToken)}&key=${encodeURIComponent(apiKey)}`;
     } else {
       url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
-      if (lat != null && lng != null) url += `&location=${lat},${lng}&radius=${radius || 8047}`;
     }
     const res = await fetch(url);
     const json = await res.json();
@@ -517,7 +516,7 @@ ipcMain.handle('leadgen:maps-details', async (_event, { apiKey, placeId }) => {
 
 ipcMain.handle('leadgen:test-maps-key', async (_event, apiKey) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=30301&key=${encodeURIComponent(apiKey)}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=${encodeURIComponent(apiKey)}`;
     const res = await fetch(url);
     const json = await res.json();
     if (json.status === 'OK' || json.status === 'ZERO_RESULTS') return { ok: true };
@@ -525,26 +524,40 @@ ipcMain.handle('leadgen:test-maps-key', async (_event, apiKey) => {
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
+ipcMain.handle('leadgen:raw-test', async (_event, apiKey) => {
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=${encodeURIComponent(apiKey)}`;
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    let parsed = null;
+    try { parsed = JSON.parse(text); } catch {}
+    return { ok: true, url: url.replace(encodeURIComponent(apiKey), '***KEY***'), status: res.status, body: text, parsed };
+  } catch (err) {
+    return { ok: false, url: url.replace(encodeURIComponent(apiKey), '***KEY***'), error: err.message };
+  }
+});
+
 // ── IPC: Lead Generation — Apollo.io ─────────────────────────────────────────
+
+const APOLLO_ENDPOINT = 'https://api.apollo.io/api/v1/mixed_people/api_search';
 
 ipcMain.handle('leadgen:apollo-search', async (_event, { apiKey, companyName, domain, page }) => {
   try {
     const body = {
-      api_key: apiKey,
       q_organization_name: companyName,
       person_titles: [
-        'Operations Manager', 'Warehouse Manager', 'Procurement Manager',
-        'Logistics Manager', 'Supply Chain Manager', 'Facilities Manager',
-        'Plant Manager', 'Distribution Manager', 'Operations Director',
-        'VP Operations', 'General Manager', 'Director of Operations',
+        'Operations Manager', 'VP Operations', 'Warehouse Manager',
+        'Procurement Manager', 'Director of Operations', 'Facilities Manager',
+        'Supply Chain Manager', 'Plant Manager', 'Logistics Manager',
+        'Distribution Manager', 'General Manager',
       ],
       page: page || 1,
       per_page: 10,
     };
     if (domain) body.q_organization_domains = [domain];
-    const res = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+    const res = await fetch(APOLLO_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
       body: JSON.stringify(body),
     });
     const json = await res.json();
@@ -555,13 +568,56 @@ ipcMain.handle('leadgen:apollo-search', async (_event, { apiKey, companyName, do
 
 ipcMain.handle('leadgen:test-apollo-key', async (_event, apiKey) => {
   try {
-    const res = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+    const res = await fetch(APOLLO_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-      body: JSON.stringify({ api_key: apiKey, q_organization_name: 'test', per_page: 1, page: 1 }),
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      body: JSON.stringify({ q_organization_name: 'warehouse', per_page: 1, page: 1 }),
     });
     if (res.ok || res.status === 422) return { ok: true };
     const json = await res.json().catch(() => ({}));
     return { ok: false, error: json.message || `HTTP ${res.status}` };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+
+ipcMain.handle('leadgen:apollo-raw-test', async (_event, apiKey) => {
+  const body = { q_organization_name: 'warehouse', per_page: 3, page: 1 };
+  try {
+    const res = await fetch(APOLLO_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    let parsed = null;
+    try { parsed = JSON.parse(text); } catch {}
+    return { ok: true, url: APOLLO_ENDPOINT, status: res.status, body: text, parsed };
+  } catch (err) {
+    return { ok: false, url: APOLLO_ENDPOINT, error: err.message };
+  }
+});
+
+// ── IPC: Satellite / Static Maps image ────────────────────────────────────────
+
+ipcMain.handle('leadgen:static-map', async (_event, { apiKey, address }) => {
+  try {
+    const addr = encodeURIComponent(address);
+    const url = `https://maps.googleapis.com/maps/api/staticmap?center=${addr}&zoom=18&size=600x400&maptype=satellite&markers=color:red%7C${addr}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const contentType = res.headers.get('content-type') || 'image/png';
+    if (!contentType.startsWith('image/')) return { ok: false, error: 'Not an image response' };
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return { ok: true, dataUrl: `data:${contentType};base64,${base64}` };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+
+// ── IPC: Open URL in default browser ─────────────────────────────────────────
+
+ipcMain.handle('shell:open-external', async (_event, url) => {
+  try {
+    if (!/^https?:\/\//i.test(url)) return { ok: false, error: 'Invalid URL' };
+    await shell.openExternal(url);
+    return { ok: true };
   } catch (err) { return { ok: false, error: err.message }; }
 });

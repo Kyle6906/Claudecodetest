@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('aflAPI', {
   lgMapsSearch:     (p)                   => ipcRenderer.invoke('leadgen:maps-search', p),
   lgMapsDetails:    (p)                   => ipcRenderer.invoke('leadgen:maps-details', p),
   lgTestMaps:       (key)                 => ipcRenderer.invoke('leadgen:test-maps-key', key),
+  lgRawTest:        (key)                 => ipcRenderer.invoke('leadgen:raw-test', key),
   lgApolloSearch:   (p)                   => ipcRenderer.invoke('leadgen:apollo-search', p),
   lgTestApollo:     (key)                 => ipcRenderer.invoke('leadgen:test-apollo-key', key),
+  lgApolloRawTest:  (key)                 => ipcRenderer.invoke('leadgen:apollo-raw-test', key),
+  lgStaticMap:      (p)                   => ipcRenderer.invoke('leadgen:static-map', p),
+  openExternal:     (url)                 => ipcRenderer.invoke('shell:open-external', url),
 });
