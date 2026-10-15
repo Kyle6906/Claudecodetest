@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Only Kyle's account can read or write anything.
+// Deploy with:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isKyle() {
+      return request.auth != null
+        && request.auth.token.email == 'kwaite@atlantaforklifts.com';
+    }
+    match /{document=**} {
+      allow read, write: if isKyle();
+    }
+  }
+}

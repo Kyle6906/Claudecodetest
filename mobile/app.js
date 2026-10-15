@@ -1,6 +1,6 @@
 // AFL Sales Tracker — Mobile PWA
 import { initializeApp }       from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
 import {
   initializeFirestore, memoryLocalCache,
   collection, doc, getDocs, getDoc, setDoc, deleteDoc, updateDoc, query, where, orderBy, onSnapshot,
@@ -86,23 +86,79 @@ function getAddress(lead) {
   return parts.join(', ').trim();
 }
 
-// ── Firebase init ─────────────────────────────────────────────────────────────
+// ── Firebase init + sign-in (email/password, locked to one account) ───────────
+// Anonymous sign-in was removed: it let anyone with this public config read and
+// write the database. Rules now only allow ALLOWED_EMAIL. Sign-in is remembered
+// on the phone, so it's only asked for once.
+const ALLOWED_EMAIL = 'kwaite@atlantaforklifts.com';
+
 async function initFirebase() {
   const app = initializeApp(FB_CONFIG);
   db   = initializeFirestore(app, { localCache: memoryLocalCache() });
   auth = getAuth(app);
   setDot('connecting');
-  try {
-    await signInAnonymously(auth);
-    setDot('online');
-    console.log('[AFL] Firebase ready — uid:', auth.currentUser?.uid);
-  } catch (err) {
-    console.error('[AFL] Auth failed:', err.code, err.message);
-    setDot('error');
-    if (err.code === 'auth/operation-not-allowed') {
-      showBanner('Firebase Anonymous Auth not enabled — enable it in Firebase Console to save data', 'error');
-    }
+  await new Promise(resolve => {
+    onAuthStateChanged(auth, user => {
+      if (user && !user.isAnonymous && (user.email || '').toLowerCase() === ALLOWED_EMAIL) {
+        hideSignIn();
+        setDot('online');
+        console.log('[AFL] Signed in as', user.email);
+        resolve();
+      } else if (user) {
+        signOut(auth).catch(() => {});   // leftover anonymous session or wrong account
+      } else {
+        setDot('error');
+        showSignIn();
+      }
+    });
+  });
+}
+
+function showSignIn() {
+  let ov = document.getElementById('afl-signin');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'afl-signin';
+    ov.style.cssText = 'position:fixed;inset:0;background:#f4f4f4;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML = `
+      <form id="afl-signin-form" style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:360px;box-shadow:0 6px 24px rgba(0,0,0,.12)">
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px">AFL Sales Tracker</div>
+        <div style="font-size:14px;color:#666;margin-bottom:18px">Sign in once on this phone.</div>
+        <input id="afl-signin-email" type="email" autocomplete="username" value="${ALLOWED_EMAIL}" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px">
+        <input id="afl-signin-pw" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:12px;font-size:16px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px">
+        <div id="afl-signin-err" style="color:#c62828;font-size:13px;min-height:18px;margin-bottom:8px"></div>
+        <button type="submit" style="width:100%;padding:13px;font-size:16px;background:#eb0a1e;color:#fff;border:0;border-radius:8px;font-weight:700">Sign in</button>
+        <a href="#" id="afl-signin-reset" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#555">Forgot password?</a>
+      </form>`;
+    document.body.appendChild(ov);
+    document.getElementById('afl-signin-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const errEl = document.getElementById('afl-signin-err');
+      errEl.textContent = 'Signing in…';
+      try {
+        await signInWithEmailAndPassword(auth,
+          document.getElementById('afl-signin-email').value.trim(),
+          document.getElementById('afl-signin-pw').value);
+      } catch (err) {
+        errEl.textContent = (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password')
+          ? 'Wrong email or password.'
+          : err.code === 'auth/network-request-failed' ? 'No internet connection.' : `Sign-in failed (${err.code || 'error'}).`;
+      }
+    });
+    document.getElementById('afl-signin-reset').addEventListener('click', async e => {
+      e.preventDefault();
+      const email = document.getElementById('afl-signin-email').value.trim();
+      const errEl = document.getElementById('afl-signin-err');
+      try { await sendPasswordResetEmail(auth, email); errEl.textContent = `Reset link sent to ${email}`; }
+      catch (err) { errEl.textContent = `Could not send reset email (${err.code || 'error'}).`; }
+    });
   }
+  ov.style.display = 'flex';
+}
+
+function hideSignIn() {
+  const ov = document.getElementById('afl-signin');
+  if (ov) ov.style.display = 'none';
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────

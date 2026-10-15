@@ -3,22 +3,12 @@
 //
 // ── Firebase Console setup required ────────────────────────────────────────────
 //
-// 1. Enable Anonymous Authentication:
-//    Firebase Console → Authentication → Sign-in methods → Anonymous → Enable
-//
-// 2. Set Firestore security rules (Firestore Database → Rules → Publish):
-//
-//   rules_version = '2';
-//   service cloud.firestore {
-//     match /databases/{database}/documents {
-//       match /{document=**} {
-//         allow read, write: if request.auth != null;
-//       }
-//     }
-//   }
+// 1. Enable Email/Password sign-in and add your user (see "Sign-in" below).
+// 2. Security rules live in firestore.rules / storage.rules in this repo and are
+//    deployed with:  firebase deploy --only firestore:rules,storage
 //
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
 import {
   initializeFirestore,
   memoryLocalCache,
@@ -67,47 +57,107 @@ window._fss = { ref: storageRef, uploadBytesResumable, getDownloadURL, deleteObj
 
 console.log('[Firebase] SDK loaded — project:', _cfg.projectId);
 
-// Sign in anonymously so Firestore security rules (require auth) are satisfied.
-// Requires Anonymous Authentication to be ENABLED in Firebase Console:
-//   Authentication → Sign-in methods → Anonymous → Enable
-signInAnonymously(_auth)
-  .then(function() {
-    const uid = _auth.currentUser ? _auth.currentUser.uid : '(unknown)';
-    console.log('[Firebase] Anonymous sign-in OK — uid:', uid);
+// ── Sign-in (email + password, locked to one account) ──────────────────────────
+// Anonymous sign-in was removed: it let ANYONE with this public config read and
+// write the database. Firestore/Storage rules now only allow ALLOWED_EMAIL.
+//
+// Firebase Console setup required (one time):
+//   1. Authentication → Sign-in method → Email/Password → Enable
+//   2. Authentication → Users → Add user → kwaite@atlantaforklifts.com + password
+// Sign-in is remembered on this computer, so you only enter it once.
+const ALLOWED_EMAIL = 'kwaite@atlantaforklifts.com';
+let _readyResolved = false;
+
+function _resolveFirebaseReady() {
+  if (_readyResolved) return;
+  _readyResolved = true;
+  if (typeof window._firebaseReadyResolve === 'function') window._firebaseReadyResolve();
+}
+
+onAuthStateChanged(_auth, function(user) {
+  if (user && !user.isAnonymous && (user.email || '').toLowerCase() === ALLOWED_EMAIL) {
+    console.log('[Firebase] Signed in as', user.email);
+    _hideSignIn();
     _setFbStatus(true);
-    if (typeof window._firebaseReadyResolve === 'function') window._firebaseReadyResolve();
-  })
-  .catch(function(err) {
-    const code = err.code || 'unknown';
-    const msg  = err.message || String(err);
-    console.error('[Firebase] signInAnonymously failed — code:', code, '| message:', msg);
-
-    if (code === 'auth/operation-not-allowed') {
-      console.error(
-        '[Firebase] FIX: Enable Anonymous Authentication in Firebase Console\n' +
-        '  1. Go to https://console.firebase.google.com\n' +
-        '  2. Project: afl-sales-tracker-52890 → Authentication → Sign-in methods\n' +
-        '  3. Click Anonymous → toggle Enable → Save\n' +
-        '  4. Restart the app'
-      );
-      _setFbStatus(false, 'Enable Anon Auth');
-      _delayedToast(
-        'Action required: go to Firebase Console → Authentication → Sign-in methods → Anonymous → Enable, then restart the app.',
-        'error'
-      );
-    } else if (code === 'auth/network-request-failed') {
-      console.error('[Firebase] Network error — check internet connection');
-      _setFbStatus(false, 'No internet');
-      _delayedToast('Firebase: network error — check internet connection.', 'error');
-    } else {
-      console.error('[Firebase] Unexpected auth error — code:', code);
-      _setFbStatus(false, code);
-      _delayedToast('Firebase auth error (' + code + ') — see DevTools console (Ctrl+Shift+I) for details.', 'error');
+    _resolveFirebaseReady();
+    // (Re)start live listeners that need an authenticated user
+    if (typeof window.startTasksListener === 'function') {
+      try { window.startTasksListener(); } catch (e) { console.error(e); }
     }
+    return;
+  }
+  if (user) {
+    // Leftover anonymous session or wrong account — sign it out
+    signOut(_auth).catch(function() {});
+    return;
+  }
+  _setFbStatus(false, 'Sign in');
+  _showSignIn();
+  // Let the app keep starting up on local data while signed out
+  _resolveFirebaseReady();
+});
 
-    // Still resolve so loadData() continues — reads may work if Firestore rules allow it.
-    if (typeof window._firebaseReadyResolve === 'function') window._firebaseReadyResolve();
-  });
+function _showSignIn(errorMsg) {
+  let ov = document.getElementById('afl-signin');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'afl-signin';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:inherit';
+    ov.innerHTML =
+      '<form id="afl-signin-form" style="background:#fff;border-radius:10px;padding:28px;width:340px;box-shadow:0 10px 40px rgba(0,0,0,.3)">' +
+        '<div style="font-size:18px;font-weight:700;margin-bottom:4px">Sign in to AFL Sales Tracker</div>' +
+        '<div style="font-size:13px;color:#666;margin-bottom:18px">Needed for cloud sync. You only do this once per computer.</div>' +
+        '<label style="font-size:12px;color:#555">Email</label>' +
+        '<input id="afl-signin-email" type="email" autocomplete="username" value="' + ALLOWED_EMAIL + '" style="width:100%;box-sizing:border-box;padding:9px;margin:4px 0 12px;border:1px solid #ccc;border-radius:6px">' +
+        '<label style="font-size:12px;color:#555">Password</label>' +
+        '<input id="afl-signin-pw" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px;margin:4px 0 12px;border:1px solid #ccc;border-radius:6px">' +
+        '<div id="afl-signin-err" style="color:#c62828;font-size:12px;min-height:16px;margin-bottom:8px"></div>' +
+        '<button type="submit" style="width:100%;padding:10px;background:#eb0a1e;color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer">Sign in</button>' +
+        '<div style="display:flex;justify-content:space-between;margin-top:12px;font-size:12px">' +
+          '<a href="#" id="afl-signin-reset" style="color:#555">Forgot password?</a>' +
+          '<a href="#" id="afl-signin-skip" style="color:#555">Work offline</a>' +
+        '</div>' +
+      '</form>';
+    document.body.appendChild(ov);
+    document.getElementById('afl-signin-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('afl-signin-email').value.trim();
+      const pw = document.getElementById('afl-signin-pw').value;
+      const errEl = document.getElementById('afl-signin-err');
+      errEl.textContent = 'Signing in…';
+      try {
+        await signInWithEmailAndPassword(_auth, email, pw);
+      } catch (err) {
+        errEl.textContent = (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password')
+          ? 'Wrong email or password.'
+          : (err.code === 'auth/network-request-failed' ? 'No internet connection.' : 'Sign-in failed (' + (err.code || 'error') + ').');
+      }
+    });
+    document.getElementById('afl-signin-reset').addEventListener('click', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('afl-signin-email').value.trim();
+      const errEl = document.getElementById('afl-signin-err');
+      try { await sendPasswordResetEmail(_auth, email); errEl.textContent = 'Reset link sent to ' + email; }
+      catch (err) { errEl.textContent = 'Could not send reset email (' + (err.code || 'error') + ').'; }
+    });
+    document.getElementById('afl-signin-skip').addEventListener('click', function(e) {
+      e.preventDefault();
+      _hideSignIn();
+      _delayedToast('Working offline — changes save to this computer only until you sign in.', 'error');
+    });
+  }
+  ov.style.display = 'flex';
+  if (errorMsg) document.getElementById('afl-signin-err').textContent = errorMsg;
+  setTimeout(function() { const pw = document.getElementById('afl-signin-pw'); if (pw) pw.focus(); }, 50);
+}
+
+function _hideSignIn() {
+  const ov = document.getElementById('afl-signin');
+  if (ov) ov.style.display = 'none';
+}
+
+// Lets you re-open the sign-in box from DevTools or a future menu item
+window.aflShowSignIn = function() { _showSignIn(); };
 
 function _delayedToast(message, type) {
   // Delay so the DOM/toast function is ready when this fires
