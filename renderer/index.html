@@ -9,6 +9,7 @@
 <!-- Firebase: create the ready-gate before the module loads so loadData() can await it -->
 <script>window._firebaseReadyPromise = new Promise(function(r) { window._firebaseReadyResolve = r; });</script>
 <script type="module" src="firebase.js"></script>
+<script src="cloud-sync.js"></script>
 <style>
 /* ── Reset & Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3595,10 +3596,14 @@ async function _syncToFirestore() {
     ['contactDocuments', appState.contactDocuments || []],
   ];
   for (const [name, records] of cols) {
+    // leads/quotes/sales: only push records that differ from the cloud copy, and
+    // only after the cloud listener has loaded (see cloud-sync.js)
+    if (window.CloudSync && !window.CloudSync.isReady(name)) continue;
     let batch = writeBatch(window.db);
     let count = 0;
     for (const record of records) {
       if (!record.id) continue;
+      if (window.CloudSync && !window.CloudSync.shouldPush(name, record)) continue;
       batch.set(doc(window.db, name, record.id), record);
       if (++count >= 499) { await batch.commit(); batch = writeBatch(window.db); count = 0; }
     }
@@ -3629,6 +3634,7 @@ async function _loadFromFirestore() {
     appState.leads    = toArr(leadsSnap);
     appState.quotes   = toArr(quotesSnap);
     appState.sales    = toArr(salesSnap);
+    appState.cloudReviewV1 = true;   // fresh pull from cloud — nothing to review
     appState.tasks    = toArr(tasksSnap);
     appState.equipment = toArr(equipSnap);
     appState.contactDocuments = toArr(docsSnap);
@@ -4412,6 +4418,7 @@ function deleteQuote(id, btn) {
     clearTimeout(pendingDeleteTimers[id]);
     delete pendingDeleteTimers[id];
     appState.quotes = appState.quotes.filter(q => q.id !== id);
+    window.CloudSync?.deleteRemote('quotes', id);
     saveData();
     if (activeTab === 'deals') renderDeals();
     toast('Quote deleted', 'warn');
@@ -4784,6 +4791,7 @@ function deleteSale(id, btn) {
     clearTimeout(pendingDeleteTimers[id]);
     delete pendingDeleteTimers[id];
     appState.sales = appState.sales.filter(s => s.id !== id);
+    window.CloudSync?.deleteRemote('sales', id);
     saveData();
     renderSales();
     toast('Sale deleted', 'warn');
@@ -6524,6 +6532,7 @@ function deleteLead(id, btn) {
     clearTimeout(pendingDeleteTimers[id]);
     delete pendingDeleteTimers[id];
     appState.leads = appState.leads.filter(l => l.id !== id);
+    window.CloudSync?.deleteRemote('leads', id);
     saveData(); updateLeadsBadge();
     if (activeTab === 'leads') renderLeads();
     toast('Lead deleted', 'warn');
@@ -9559,6 +9568,7 @@ let _tasksUnsubscribe = null;
 
 function startTasksListener() {
   if (!window.db || !window._fs?.onSnapshot) return;
+  window.CloudSync?.start();
   if (_tasksUnsubscribe) _tasksUnsubscribe();
   _tasksUnsubscribe = window._fs.onSnapshot(
     window._fs.collection(window.db, 'tasks'),
