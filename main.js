@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, Notification, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -285,6 +285,84 @@ ipcMain.handle('docs:delete', (_event, storedFileName) => {
   }
 });
 
+ipcMain.handle('docs:pickForUpload', async () => {
+  const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  mainWindow.setAlwaysOnTop(true);
+  mainWindow.focus();
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Document',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Documents & Images', extensions: ['pdf','docx','doc','xlsx','xls','jpg','jpeg','png'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  mainWindow.setAlwaysOnTop(false);
+  if (result.canceled || !result.filePaths.length) return null;
+  const srcPath = result.filePaths[0];
+  const originalFileName = path.basename(srcPath);
+  const ext = path.extname(originalFileName).toLowerCase().replace(/^\./, '');
+  try {
+    const buffer = fs.readFileSync(srcPath);
+    return { originalFileName, ext, fileSize: buffer.length, base64: buffer.toString('base64') };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('open-file-dialog', async () => {
+  const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  mainWindow.setAlwaysOnTop(true);
+  mainWindow.focus();
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Documents', extensions: ['docx', 'doc', 'pdf', 'xlsx', 'xls', 'jpg', 'jpeg', 'png'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  mainWindow.setAlwaysOnTop(false);
+  return result;
+});
+
+ipcMain.handle('read-file', (_event, filePath) => {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    const originalFileName = path.basename(filePath);
+    const ext = path.extname(originalFileName).toLowerCase().replace(/^\./, '');
+    return { originalFileName, ext, fileSize: buffer.length, base64: buffer.toString('base64') };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('docs:downloadUrl', async (event, url, defaultName) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: defaultName || 'document',
+    filters: [{ name: 'All Files', extensions: ['*'] }],
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  try {
+    await new Promise((resolve, reject) => {
+      const request = net.request({ url, redirect: 'follow' });
+      const chunks = [];
+      request.on('response', (response) => {
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          try { fs.writeFileSync(result.filePath, Buffer.concat(chunks)); resolve(); } catch (e) { reject(e); }
+        });
+        response.on('error', reject);
+      });
+      request.on('error', reject);
+      request.end();
+    });
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle('docs:storageInfo', () => {
   try {
     ensureDocsDir();
@@ -475,6 +553,17 @@ ipcMain.handle('git:status', async () => {
 
 // ── IPC: Lead Generation — Google Maps ────────────────────────────────────────
 
+ipcMain.handle('leadgen:distance-matrix', async (_event, { origins, destinations, apiKey }) => {
+  try {
+    const origEnc = encodeURIComponent(origins);
+    const destEnc = destinations.map(d => encodeURIComponent(d)).join('|');
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origEnc}&destinations=${destEnc}&key=${encodeURIComponent(apiKey)}&units=imperial`;
+    const res = await fetch(url);
+    const json = await res.json();
+    return json;
+  } catch (err) { return { status: 'ERROR', error: err.message }; }
+});
+
 ipcMain.handle('leadgen:geocode', async (_event, { zip, apiKey }) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(zip + ',GA')}&key=${encodeURIComponent(apiKey)}`;
@@ -511,6 +600,30 @@ ipcMain.handle('leadgen:maps-details', async (_event, { apiKey, placeId }) => {
     const json = await res.json();
     if (json.status !== 'OK') return { ok: false, error: `Place details failed: ${json.status}` };
     return { ok: true, result: json.result };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+
+ipcMain.handle('leadgen:geocode-address', async (_event, { address, apiKey }) => {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    console.log('[IPC] geocode-address:', json.status, address.slice(0, 60));
+    if (json.status !== 'OK' || !json.results.length)
+      return { ok: false, error: `Geocode: ${json.status}${json.error_message ? ' — ' + json.error_message : ''}` };
+    const loc = json.results[0].geometry.location;
+    return { ok: true, lat: loc.lat, lng: loc.lng };
+  } catch (err) { return { ok: false, error: err.message }; }
+});
+
+ipcMain.handle('leadgen:places-autocomplete', async (_event, { input, apiKey }) => {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=address&components=country:us&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS')
+      return { ok: false, error: `Autocomplete: ${json.status}${json.error_message ? ' — ' + json.error_message : ''}` };
+    return { ok: true, predictions: (json.predictions || []).map(p => ({ description: p.description, placeId: p.place_id })) };
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
@@ -616,7 +729,7 @@ ipcMain.handle('leadgen:static-map', async (_event, { apiKey, address }) => {
 
 ipcMain.handle('shell:open-external', async (_event, url) => {
   try {
-    if (!/^https?:\/\//i.test(url)) return { ok: false, error: 'Invalid URL' };
+    if (!/^(https?|mailto):/i.test(url)) return { ok: false, error: 'Invalid URL' };
     await shell.openExternal(url);
     return { ok: true };
   } catch (err) { return { ok: false, error: err.message }; }

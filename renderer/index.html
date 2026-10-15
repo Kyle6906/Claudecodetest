@@ -6,6 +6,9 @@
 <title>AFL Sales Tracker</title>
 <!-- SheetJS loaded from local node_modules so exports work in the renderer process -->
 <script src="../node_modules/xlsx/dist/xlsx.full.min.js"></script>
+<!-- Firebase: create the ready-gate before the module loads so loadData() can await it -->
+<script>window._firebaseReadyPromise = new Promise(function(r) { window._firebaseReadyResolve = r; });</script>
+<script type="module" src="firebase.js"></script>
 <style>
 /* ── Reset & Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -338,6 +341,13 @@ main {
 .badge.lead-active        { background:#e8f5e9; color:#1b5e20; }
 .badge.lead-customer      { background:#cc0000; color:#fff; }
 .badge.lead-inactive      { background:#f5f5f5; color:#757575; }
+/* Manual status badges */
+.badge.lead-prospect        { background:#fff3e0; color:#e65100; }
+.badge.lead-lead            { background:#e3f2fd; color:#1565c0; }
+.badge.lead-dormant         { background:#f3e5f5; color:#6a1b9a; }
+.badge.lead-active_customer { background:#e8f5e9; color:#1b5e20; }
+.badge.lead-inactive_customer { background:#f5f5f5; color:#757575; }
+.badge.lead-former_customer { background:#ede7f6; color:#4527a0; }
 /* Legacy status badges */
 .badge.lead-potential_customer { background:#fce4ec; color:#880e4f; }
 .badge.lead-new          { background:#e3f2fd; color:#1565c0; }
@@ -420,7 +430,11 @@ main {
 .fs-detail-item { display:flex; flex-direction:column; gap:1px; }
 .fs-detail-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#aaa; }
 .fs-detail-val { font-size:13px; color:#333; }
-.fs-result-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.fs-result-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+.fs-dl-prompt { position:absolute; z-index:100; background:#fff; border:1px solid #c5d3f5; border-radius:8px; padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:220px; top:100%; left:0; margin-top:6px; }
+.fs-dl-feedback { font-size:13px; padding:6px 10px; border-radius:6px; margin-top:8px; }
+.fs-dl-feedback.success { background:#e8f5e9; color:#2e7d32; }
+.fs-dl-feedback.warn { background:#fff8e1; color:#e65100; }
 /* ── Territory view ─────────────────────────────────────────────────────── */
 .territory-row-untapped td { color: #bbb; }
 .territory-row-untapped td:first-child { color: #ccc; font-weight: 600; }
@@ -516,6 +530,7 @@ main {
 .docs-storage-bar { font-size:12px; color:#999; padding:12px 0 2px; border-top:1px solid #f0f0f0; margin-top:14px; }
 .doc-profile-section { margin-top:16px; }
 .doc-profile-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
+.doc-icon-sm { width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; letter-spacing:.4px; flex-shrink:0; }
 .doc-profile-item:last-child { border-bottom:none; }
 .doc-profile-item-name { flex:1; font-weight:600; color:#1565c0; cursor:pointer; }
 .doc-profile-item-name:hover { text-decoration:underline; }
@@ -528,6 +543,8 @@ main {
 
 /* ── Quote Line Items ────────────────────────────────────────────────────── */
 .line-items-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.q-li-model-display { padding: 2px 0 3px; }
+.q-li-model-display .badge.model { font-size: 13px; padding: 3px 10px; cursor: default; }
 .quote-line-item {
   display: flex; flex-direction: column; gap: 5px;
   background: #fafafa; border-radius: 6px; border: 1px solid #e8e8e8; padding: 7px 8px;
@@ -968,6 +985,28 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .overdue-item-meta { font-size: 11px; color: #666; }
 .overdue-days { background: #c62828; color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
 
+/* ── Follow-up queue ─────────────────────────────────────────────────────── */
+.followup-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.followup-item {
+  display:flex; align-items:flex-start; gap:12px; padding:12px 14px;
+  background:#f0f4ff; border:1px solid #c5d3f5; border-left:4px solid #1565c0;
+  border-radius:7px;
+}
+.followup-item.manual-review {
+  background:#fff8e1; border-color:#ffe082; border-left-color:#e65100;
+}
+.followup-item-body { flex:1; min-width:0; }
+.followup-item-company { font-weight:700; font-size:13px; color:#1a1a1a; }
+.followup-item-meta { font-size:11px; color:#666; margin-top:2px; }
+.followup-touch-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#1565c0; color:#fff; border-radius:12px; padding:2px 9px;
+  font-size:11px; font-weight:700; white-space:nowrap; flex-shrink:0;
+}
+.followup-touch-badge.t4 { background:#c62828; }
+.followup-touch-badge.manual { background:#e65100; }
+.badge.manual-review { background:#fff3e0; color:#e65100; font-size:10px; border:1px solid #ffe082; }
+
 /* ── Pipeline sort bar ───────────────────────────────────────────────────── */
 .pipeline-sort-wrap { display: flex; align-items: center; gap: 8px; }
 .pipeline-sort-wrap label { font-size: 12px; color: #888; font-weight: 600; }
@@ -1119,8 +1158,6 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .task-item.completed .task-title-text { text-decoration: line-through; color: #999; }
 .task-meta { font-size: 11px; color: #888; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .task-due { }
-.task-due.overdue { color: #c62828; font-weight: 700; }
-.task-due.today { color: #e65100; font-weight: 700; }
 .task-priority { padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 .task-priority.low    { background: #f3f3f3; color: #777; }
 .task-priority.medium { background: #fff8e1; color: #f57f17; }
@@ -1151,8 +1188,6 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .dash-task-cb:hover { border-color: #cc0000; }
 .dash-task-title { flex: 1; font-size: 13px; font-weight: 600; }
 .dash-task-due { font-size: 11px; white-space: nowrap; }
-.dash-task-due.overdue { color: #c62828; font-weight: 700; }
-.dash-task-due.today { color: #e65100; font-weight: 700; }
 
 /* ── Linked Tasks in profile/modals ──────────────────────────────────────── */
 .linked-tasks-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
@@ -1164,7 +1199,43 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .linked-task-ttl { flex: 1; font-size: 12px; font-weight: 600; }
 .linked-task-ttl.done { text-decoration: line-through; color: #bbb; }
 .linked-task-due { font-size: 11px; color: #999; white-space: nowrap; }
-.linked-task-due.overdue { color: #c62828; font-weight: 700; }
+
+/* ── Daily Log ── */
+.dl-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.dl-toolbar input[type="date"] { border:1px solid #e0e0e0; border-radius:6px; padding:7px 10px; font-size:14px; }
+.dl-sub-tabs { display:flex; gap:0; border:1px solid #e0e0e0; border-radius:6px; overflow:hidden; margin-bottom:20px; width:fit-content; }
+.dl-sub-tab { padding:8px 20px; border:none; background:#fff; font-size:13px; font-weight:600; color:#666; cursor:pointer; transition:background 0.15s,color 0.15s; }
+.dl-sub-tab:hover { background:#f5f5f5; color:#1a1a1a; }
+.dl-sub-tab.active { background:#1565c0; color:#fff; }
+.dl-stop-card { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px 16px; margin-bottom:10px; display:flex; gap:14px; align-items:flex-start; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.dl-stop-num { width:32px; height:32px; border-radius:50%; background:#1565c0; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dl-stop-info { flex:1; min-width:0; }
+.dl-stop-company { font-size:15px; font-weight:700; color:#1a1a1a; margin-bottom:2px; }
+.dl-stop-contact { font-size:13px; color:#555; margin-bottom:2px; }
+.dl-stop-addr { font-size:12px; color:#888; }
+.dl-stop-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+.dl-stop-status { display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:12px; text-transform:uppercase; letter-spacing:.4px; }
+.dl-stop-status.planned { background:#f0f0f0; color:#666; }
+.dl-stop-status.completed { background:#e8f5e9; color:#2e7d32; }
+.dl-stop-status.skipped { background:#fff3e0; color:#e65100; }
+.dl-history-row { background:#fff; border:1px solid #e0e0e0; border-radius:6px; padding:12px 16px; margin-bottom:8px; cursor:pointer; transition:background 0.12s; }
+.dl-history-row:hover { background:#f9f9f9; }
+.dl-history-row-header { display:flex; align-items:center; gap:12px; }
+.dl-history-date { font-size:14px; font-weight:700; color:#1a1a1a; min-width:120px; }
+.dl-history-stats { display:flex; gap:12px; font-size:12px; color:#666; flex:1; }
+.dl-history-detail { margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0; }
+.dl-history-stop-row { font-size:13px; padding:6px 0; border-bottom:1px solid #f5f5f5; display:flex; gap:10px; align-items:flex-start; }
+.dl-drag-handle { cursor:grab; color:#bbb; font-size:18px; padding:4px 6px 0; user-select:none; flex-shrink:0; line-height:1; }
+.dl-drag-handle:active { cursor:grabbing; }
+.dl-drag-over { outline:2px solid #cc0000 !important; border-radius:6px; }
+.dl-summary-bar { display:flex; gap:20px; background:#f0f4ff; border:1px solid #c5d3f5; border-radius:8px; padding:12px 18px; margin-top:16px; flex-wrap:wrap; }
+.dl-summary-stat { text-align:center; }
+.dl-summary-num { font-size:22px; font-weight:700; color:#1565c0; }
+.dl-summary-label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; }
+.dl-empty { color:#bbb; font-size:13px; padding:24px 0; text-align:center; }
+.dl-home-warn { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:10px 14px; font-size:13px; color:#e65100; margin-bottom:14px; }
+.dl-stop-card.unplanned { border-left:3px solid #1565c0; }
+.dl-stop-card.new-lead { border-left:3px solid #2e7d32; }
 </style>
 </head>
 <body>
@@ -1178,10 +1249,15 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <button class="tab-btn" data-tab="deals">Quotes <span class="tab-badge" id="deals-overdue-badge" style="display:none">0</span></button>
     <button class="tab-btn" data-tab="sales">Sales</button>
     <button class="tab-btn" data-tab="tasks">Tasks <span class="tab-badge" id="tasks-open-badge" style="display:none">0</span></button>
+    <button class="tab-btn" data-tab="dailylog">Daily Log</button>
     <button class="tab-btn" data-tab="commission">Commission</button>
     <button class="tab-btn" data-tab="documents">Docs <span class="tab-badge" id="docs-count-badge" style="display:none;background:#1a3a7a">0</span></button>
     <button class="tab-btn" data-tab="settings">Settings</button>
   </nav>
+  <div id="fb-status" title="Firebase: Connecting..." style="-webkit-app-region:no-drag;display:flex;align-items:center;gap:5px;font-size:11px;color:#888;margin-right:4px;cursor:default">
+    <span id="fb-status-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s;flex-shrink:0"></span>
+    <span id="fb-status-text" style="white-space:nowrap">Connecting...</span>
+  </div>
   <div class="header-actions">
     <button class="btn-icon" onclick="openFleetSearch()" style="white-space:nowrap;background:#1b5e20;color:#fff;border:1px solid #2e7d32;font-size:13px;font-weight:700">🔍 Fleet Search</button>
     <button class="btn-icon" id="btn-upload-doc-global" style="white-space:nowrap;background:#f0f4ff;color:#1a3a7a;border:1px solid #c5d3f5;font-size:12px">📎 Upload Doc</button>
@@ -1304,6 +1380,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       </div>
       <div class="overdue-list" id="dash-overdue-list"></div>
     </div>
+    <div class="card dash-grid-full" id="dash-followup-section" style="display:none">
+      <div class="section-title" style="color:#1565c0">
+        Follow-Ups Due
+        <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">Quotes ready for next outreach touch</span>
+      </div>
+      <div class="followup-list" id="dash-followup-list"></div>
+    </div>
     <div class="dash-grid">
       <div class="card">
         <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -1408,6 +1491,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <button class="btn-add" id="btn-add-deal">+ New Quote</button>
       </div>
     </div>
+    <div id="deals-followup-section" style="display:none;margin-bottom:16px">
+      <div class="section-title" style="color:#1565c0;margin-bottom:6px">
+        Follow-Ups Due
+        <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">Click "Draft Email" to send the next touch</span>
+      </div>
+      <div class="followup-list" id="deals-followup-list"></div>
+    </div>
     <div class="pipeline-stats">
       <div class="pipeline-stat-card">
         <div class="pipeline-stat-num" id="pl-open-count">0</div>
@@ -1501,29 +1591,21 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 
   <!-- Tasks -->
   <section id="tab-tasks" class="tab-panel">
-    <div class="task-tab-layout">
-      <div class="task-sidebar">
-        <div class="task-sidebar-item active" data-task-filter="all">All Open <span class="task-sidebar-count" id="tsc-all">0</span></div>
-        <div class="task-sidebar-item" data-task-filter="today">Today <span class="task-sidebar-count" id="tsc-today">0</span></div>
-        <div class="task-sidebar-item" data-task-filter="upcoming">Upcoming <span class="task-sidebar-count" id="tsc-upcoming">0</span></div>
-        <div class="task-sidebar-item tsi-overdue" data-task-filter="overdue">Overdue <span class="task-sidebar-count" id="tsc-overdue">0</span></div>
-        <div class="task-sidebar-divider"></div>
-        <div class="task-sidebar-item" data-task-filter="customers">By Customer <span class="task-sidebar-count" id="tsc-customers">0</span></div>
-        <div class="task-sidebar-item" data-task-filter="quotes">By Quote <span class="task-sidebar-count" id="tsc-quotes">0</span></div>
-        <div class="task-sidebar-divider"></div>
-        <div class="task-sidebar-item" data-task-filter="completed">Completed <span class="task-sidebar-count" id="tsc-completed">0</span></div>
-      </div>
-      <div class="task-main">
-        <div style="display:flex;gap:10px;align-items:center">
-          <div class="task-quick-add" style="flex:1">
-            <input type="text" id="task-quick-input" placeholder="Quick add — type a task and press Enter...">
-          </div>
-          <button class="btn-add" id="btn-add-task-full">+ Add Task</button>
-          <button class="btn-icon" id="btn-export-tasks" style="white-space:nowrap">Export Excel</button>
+    <div class="task-main">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="task-quick-add" style="flex:1">
+          <input type="text" id="task-quick-input" placeholder="Quick add — type a task and press Enter...">
         </div>
-        <div id="tasks-list-container"></div>
+        <button class="btn-add" id="btn-add-task-full">+ Add Task</button>
+        <button class="btn-icon" id="btn-export-tasks" style="white-space:nowrap">Export Excel</button>
       </div>
+      <div id="tasks-list-container"></div>
     </div>
+  </section>
+
+  <!-- Daily Log -->
+  <section id="tab-dailylog" class="tab-panel">
+    <div id="dailylog-root"></div>
   </section>
 
   <!-- Leads -->
@@ -1588,11 +1670,11 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <input class="search-input" id="leads-search" type="text" placeholder="Search company, contact, phone, zip...">
       <select class="filter-input" id="leads-filter-status">
         <option value="">All Statuses</option>
+        <option value="prospect">Prospect</option>
+        <option value="lead">Lead</option>
         <option value="customer">Customer</option>
-        <option value="active">Active</option>
-        <option value="contact">Contact</option>
-        <option value="potential">Potential</option>
-        <option value="inactive">Inactive</option>
+        <option value="dormant">Dormant</option>
+        <option value="not_interested">Not Interested</option>
       </select>
       <select class="filter-input" id="leads-filter-industry">
         <option value="">All Industries</option>
@@ -1729,6 +1811,15 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
   <!-- Settings -->
   <section id="tab-settings" class="tab-panel">
     <div class="list-title" style="margin-bottom:20px">Settings</div>
+    <div class="settings-section">
+      <div class="settings-section-title">Daily Log &mdash; Home Address</div>
+      <p style="font-size:13px;color:#666;margin:0 0 14px">Your starting point for route optimization. Used to calculate the best order for your daily stop list.</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="form-input" id="home-address-input" type="text" placeholder="e.g. 123 Main St, Marietta, GA 30060" style="flex:1;min-width:220px">
+        <button class="btn-save" onclick="saveHomeAddress()" style="font-size:13px;padding:8px 16px">Save Address</button>
+        <span id="home-address-status" style="font-size:12px;color:#2e7d32"></span>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-section-title">Backup & Recovery</div>
       <p style="font-size:13px;color:#666;margin:0 0 14px">Your data is automatically backed up to OneDrive every time the app closes and every 24 hours while open.</p>
@@ -2168,6 +2259,29 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
   </div>
 </div>
 
+<!-- ── Modal: Follow-Up Email Draft ──────────────────────────────────────── -->
+<div class="modal-overlay" id="overlay-followup-draft">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="followup-draft-title">Draft Follow-Up Email</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">Subject</label>
+      <input class="form-input" id="followup-draft-subject" type="text" style="width:100%">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">Body</label>
+      <textarea class="form-textarea" id="followup-draft-body" rows="10" style="width:100%;font-family:inherit;font-size:13px;resize:vertical"></textarea>
+    </div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px">
+      Sending to: <span id="followup-draft-email" style="font-weight:600;color:#1565c0"></span>
+    </div>
+    <div class="modal-footer" style="gap:8px;justify-content:flex-end">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-followup-draft').classList.remove('open')">Cancel</button>
+      <button class="btn-icon" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7" onclick="followupMarkSent()">Mark as Sent (No Email)</button>
+      <button class="btn-save" style="background:#1565c0" onclick="followupOpenEmail()">Open in Email App &amp; Mark Sent</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Post-Conversion Prompt ─────────────────────────────────────── -->
 <div class="modal-overlay" id="overlay-post-convert">
   <div class="modal" style="max-width:420px">
@@ -2176,6 +2290,51 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div class="modal-footer">
       <button class="btn-cancel" id="post-convert-skip">Not Now</button>
       <button class="btn-save" id="post-convert-start-quote" style="background:#cc0000">Start a Quote →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Contact Document Upload ────────────────────────────────── -->
+<div class="modal-overlay" id="overlay-contact-doc-upload">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Upload Document</div>
+    <div style="display:flex;align-items:center;gap:12px;background:#f0f4ff;border:1px solid #c5d3f5;border-radius:8px;padding:12px 14px;margin-bottom:16px">
+      <div id="cd-file-icon" class="doc-icon" style="flex-shrink:0;width:40px;height:40px;font-size:10px"></div>
+      <div>
+        <div id="cd-file-name" style="font-weight:700;font-size:13px;color:#1a1a1a"></div>
+        <div id="cd-file-size" style="font-size:12px;color:#888;margin-top:2px"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="cd-display-name">Document Name</label>
+      <input class="form-input" id="cd-display-name" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="cd-category">Category</label>
+      <select class="form-select" id="cd-category">
+        <option value="other" selected>Other</option>
+        <option value="quote">Quote</option>
+        <option value="signed_quote">Signed Quote</option>
+        <option value="contract">Contract</option>
+        <option value="correspondence">Correspondence</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="cd-description">Description <span class="optional">(optional)</span></label>
+      <textarea class="form-textarea" id="cd-description" rows="2" placeholder="Optional notes about this document..."></textarea>
+    </div>
+    <div id="cd-link-info" style="display:none;font-size:13px;color:#555;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:6px;padding:9px 12px;margin-bottom:4px">
+      📎 Linking to: <strong id="cd-link-label"></strong>
+    </div>
+    <div id="cd-progress" style="display:none;margin-top:8px;margin-bottom:4px">
+      <div style="background:#f0f0f0;border-radius:4px;height:6px;overflow:hidden">
+        <div id="cd-progress-bar" style="height:100%;background:#1565c0;width:0%;transition:width 0.2s"></div>
+      </div>
+      <div id="cd-progress-text" style="font-size:12px;color:#888;margin-top:4px;text-align:center">Uploading…</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="cd-cancel">Cancel</button>
+      <button class="btn-save" id="cd-save">Upload</button>
     </div>
   </div>
 </div>
@@ -2351,13 +2510,11 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <div class="form-group">
         <label class="form-label" for="l-status">Status</label>
         <select class="form-select" id="l-status">
-          <option value="potential_customer">Potential Customer</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="followup">Follow-Up</option>
-          <option value="qualified">Qualified</option>
+          <option value="prospect">Prospect</option>
+          <option value="lead">Lead</option>
+          <option value="customer">Customer</option>
+          <option value="dormant">Dormant</option>
           <option value="not_interested">Not Interested</option>
-          <option value="converted">Converted</option>
         </select>
       </div>
       <div class="form-group">
@@ -2409,6 +2566,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div class="modal-footer">
       <button class="btn-cancel" id="close-lead-profile">Close</button>
       <button class="btn-save" id="edit-lead-from-profile" style="background:#1565c0">Edit Lead</button>
+      <button class="btn-save" id="add-to-daily-log-from-lead-btn" style="background:#2e7d32;display:none">📅 Add to Daily Log</button>
       <button class="btn-save" id="start-quote-from-lead-btn" style="background:#1a3a7a;display:none">Start Quote →</button>
     </div>
   </div>
@@ -2613,6 +2771,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <label class="form-label" for="q-notes">Notes <span class="optional">(optional)</span></label>
       <textarea class="form-textarea" id="q-notes" rows="3" placeholder="Customer details, special requirements, follow-up info..."></textarea>
     </div>
+    <div id="quote-docs-container" data-docs-container="quote"></div>
     <div class="modal-footer">
       <button class="btn-cancel" id="cancel-quote">Cancel</button>
       <button class="btn-save" id="save-quote">Save Quote</button>
@@ -2792,6 +2951,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <label class="form-label" for="s-notes">Notes <span class="optional">(optional)</span></label>
       <textarea class="form-textarea" id="s-notes" rows="3" placeholder="Lender, terms, delivery notes..."></textarea>
     </div>
+    <div id="sale-docs-container" data-docs-container="sale"></div>
     <div class="modal-footer">
       <button class="btn-cancel" id="cancel-sale">Cancel</button>
       <button class="btn-save" id="save-sale">Save Sale</button>
@@ -3035,14 +3195,6 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <div class="form-group">
         <label class="form-label" for="t-due">Due Date <span class="optional">(optional)</span></label>
         <input class="form-input" id="t-due" type="date">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="t-priority">Priority</label>
-        <select class="form-select" id="t-priority">
-          <option value="low">Low</option>
-          <option value="medium" selected>Medium</option>
-          <option value="high">High</option>
-        </select>
       </div>
     </div>
     <div class="form-row">
@@ -3414,6 +3566,11 @@ async function loadData() {
       console.log(`[AFL] Contacts/Leads store: ${appState.leads.length} records`, appState.leads.map(l => l.companyName));
     }
   } catch {}
+  // If local data is empty, pull from Firestore (data lives there from prior saves)
+  if (!appState.leads.length && !appState.quotes.length && !appState.sales.length) {
+    await window._firebaseReadyPromise;
+    if (window.db && window._fs) await _loadFromFirestore();
+  }
 }
 
 async function saveData() {
@@ -3421,6 +3578,71 @@ async function saveData() {
     await window.aflAPI.writeData(appState);
   } catch {
     toast('Failed to save data', 'error');
+  }
+  if (window.db && window._fs) {
+    _syncToFirestore().catch(err => console.error('[AFL] Firestore sync error:', err));
+  }
+}
+
+async function _syncToFirestore() {
+  const { collection, doc, writeBatch, setDoc } = window._fs;
+  const cols = [
+    ['leads', appState.leads || []],
+    ['quotes', appState.quotes || []],
+    ['sales', appState.sales || []],
+    ['tasks', appState.tasks || []],
+    ['equipment', appState.equipment || []],
+    ['contactDocuments', appState.contactDocuments || []],
+  ];
+  for (const [name, records] of cols) {
+    let batch = writeBatch(window.db);
+    let count = 0;
+    for (const record of records) {
+      if (!record.id) continue;
+      batch.set(doc(window.db, name, record.id), record);
+      if (++count >= 499) { await batch.commit(); batch = writeBatch(window.db); count = 0; }
+    }
+    if (count > 0) await batch.commit();
+  }
+  await setDoc(doc(window.db, 'settings', 'main'), {
+    territoryZips: appState.settings?.territoryZips || [],
+    leadGen: appState.settings?.leadGen || {},
+    homeAddress: appState.settings?.homeAddress || '',
+    system: appState.settings?.system || {},
+  });
+}
+
+async function _loadFromFirestore() {
+  try {
+    const { collection, doc, getDocs, getDoc } = window._fs;
+    console.log('[AFL] Local data empty — loading from Firestore...');
+    const [leadsSnap, quotesSnap, salesSnap, tasksSnap, equipSnap, docsSnap, settSnap] = await Promise.all([
+      getDocs(collection(window.db, 'leads')),
+      getDocs(collection(window.db, 'quotes')),
+      getDocs(collection(window.db, 'sales')),
+      getDocs(collection(window.db, 'tasks')),
+      getDocs(collection(window.db, 'equipment')),
+      getDocs(collection(window.db, 'contactDocuments')),
+      getDoc(doc(window.db, 'settings', 'main')),
+    ]);
+    const toArr = snap => snap.docs.map(d => d.data());
+    appState.leads    = toArr(leadsSnap);
+    appState.quotes   = toArr(quotesSnap);
+    appState.sales    = toArr(salesSnap);
+    appState.tasks    = toArr(tasksSnap);
+    appState.equipment = toArr(equipSnap);
+    appState.contactDocuments = toArr(docsSnap);
+    if (settSnap.exists()) {
+      const sd = settSnap.data();
+      if (sd.territoryZips) appState.settings.territoryZips = sd.territoryZips;
+      if (sd.leadGen)       appState.settings.leadGen = sd.leadGen;
+      if (sd.homeAddress)   appState.settings.homeAddress = sd.homeAddress;
+      if (sd.system)        appState.settings.system = sd.system;
+    }
+    await window.aflAPI.writeData(appState);
+    console.log('[AFL] Firestore load complete — leads:', appState.leads.length, 'quotes:', appState.quotes.length, 'sales:', appState.sales.length, 'tasks:', appState.tasks.length);
+  } catch (err) {
+    console.error('[AFL] Firestore load failed:', err);
   }
 }
 
@@ -3431,6 +3653,12 @@ function genId(prefix) { return `${prefix}_${Date.now()}_${Math.random().toStrin
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function tomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 function formatDate(iso) {
@@ -3545,6 +3773,7 @@ function switchTab(tab) {
   else if (tab === 'commission') renderCommission();
   else if (tab === 'settings') renderSettings();
   else if (tab === 'documents') renderDocuments();
+  else if (tab === 'dailylog') renderDailyLog();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3671,6 +3900,9 @@ function renderDashboard() {
     overdueList.appendChild(div);
   }
 
+  // Follow-up queue widget
+  renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
+
   // Top customers
   const custStats = buildCustStats();
   const topSpend = [...custStats.values()].sort((a,b) => b.spend - a.spend).slice(0,5);
@@ -3791,6 +4023,20 @@ function addQuoteLineItem(item = null) {
   modelSel.className = 'form-select q-li-model';
   buildModelSelect(modelSel, item ? item.forkliftModel : '');
 
+  // Model text display — shows selected model as a badge below row1
+  const modelDisplayRow = document.createElement('div');
+  modelDisplayRow.className = 'q-li-model-display';
+  const modelDisplayBadge = document.createElement('span');
+  modelDisplayBadge.className = 'badge model';
+  const _initialModel = item ? (item.forkliftModel || '') : '';
+  modelDisplayBadge.textContent = _initialModel;
+  modelDisplayRow.appendChild(modelDisplayBadge);
+  if (!_initialModel) modelDisplayRow.style.display = 'none';
+  modelSel.addEventListener('change', () => {
+    modelDisplayBadge.textContent = modelSel.value;
+    modelDisplayRow.style.display = modelSel.value ? '' : 'none';
+  });
+
   const qtySel = document.createElement('select');
   qtySel.className = 'form-select q-li-qty';
   buildQtySelect(qtySel, item ? (item.quantity || 1) : 1);
@@ -3850,7 +4096,7 @@ function addQuoteLineItem(item = null) {
   row2.appendChild(priceLabel); row2.appendChild(priceInput);
   row2.appendChild(stageSel); row2.appendChild(convertBtn);
 
-  row.appendChild(row1); row.appendChild(row2);
+  row.appendChild(row1); row.appendChild(modelDisplayRow); row.appendChild(row2);
   wrap.appendChild(row);
 }
 
@@ -3912,6 +4158,7 @@ function convertLineItemToSale(lineItem, sourceQuoteId) {
   document.getElementById('s-term').value = '';
   document.querySelector('input[name="s-buyout"][value="dollar"]').checked = true;
   ['s-name','s-model'].forEach(id => document.getElementById(id).classList.remove('invalid'));
+  const _sdc1 = document.querySelector('[data-docs-container="sale"]'); if (_sdc1) _sdc1.innerHTML = '';
   document.getElementById('overlay-sale').classList.add('open');
 }
 
@@ -3932,6 +4179,7 @@ function renderQuotes() {
 }
 
 function openQuoteModal(id = null) {
+  console.log('[Docs] Quote record opened, id:', id);
   editingQuoteId = id;
   editingQuoteLinkedId = null;
   const q = id ? appState.quotes.find(x => x.id === id) : null;
@@ -3987,6 +4235,13 @@ function openQuoteModal(id = null) {
   }
 
   document.getElementById('q-replacing-unit').value = q ? (q.replacingUnitId || '') : '';
+  const qDocsEl = document.querySelector('[data-docs-container="quote"]');
+  if (id && qDocsEl) {
+    qDocsEl.dataset.linkedName = q ? q.customerName : '';
+    renderRecordDocs('quote', id, qDocsEl);
+  } else if (qDocsEl) {
+    qDocsEl.innerHTML = '';
+  }
   document.getElementById('overlay-quote').classList.add('open');
   document.getElementById('q-name').focus();
   updateQuoteFleetPanel();
@@ -4220,6 +4475,7 @@ function convertQuoteToSale(quoteId) {
   document.getElementById('s-term').value = '';
   document.querySelector('input[name="s-buyout"][value="dollar"]').checked = true;
   ['s-name','s-model'].forEach(id => document.getElementById(id).classList.remove('invalid'));
+  const _sdc2 = document.querySelector('[data-docs-container="sale"]'); if (_sdc2) _sdc2.innerHTML = '';
   document.getElementById('overlay-sale').classList.add('open');
 }
 
@@ -4240,6 +4496,7 @@ function setDealsView(view) {
 }
 
 function renderDeals() {
+  renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
   if (dealsView === 'kanban') renderPipeline();
   else renderDealsList();
 }
@@ -4265,7 +4522,7 @@ function renderDealsList() {
     const { isOverdue, daysOverdue } = calcOverdue(q);
     const refDate = q.updatedAt ? q.updatedAt.slice(0, 10) : (q.createdAt ? q.createdAt.slice(0, 10) : q.dateOfQuote);
     const daysInStage = refDate ? Math.floor((Date.now() - new Date(refDate + 'T00:00:00').getTime()) / 86400000) : '?';
-    return `<tr class="${isOverdue ? 'overdue-row' : ''}">
+    return `<tr class="${isOverdue ? 'overdue-row' : ''}" data-quote-id="${q.id}" style="cursor:pointer">
       <td>
         <div style="font-weight:700"><a href="#" onclick="event.preventDefault();openLeadByCompany('${esc(q.customerName)}')" style="color:#1a1a1a;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(q.customerName)}</a></div>
         <div style="font-size:11px;color:#888">${formatDate(q.dateOfQuote)}${isOverdue ? ` <span style="color:#c62828;font-weight:700">· ⚠ ${daysOverdue}d overdue</span>` : ''}</div>
@@ -4302,6 +4559,8 @@ function renderSales() {
   for (const s of list) {
     const card = document.createElement('div');
     card.className = 'record-card';
+    card.dataset.saleId = s.id;
+    card.style.cursor = 'pointer';
     let finDetail = '';
     if (s.financingType === 'financed' || s.financingType === 'lease') {
       finDetail = (s.termLength ? ` · ${s.termLength}mo` : '') + (s.buyoutType && s.financingType === 'financed' ? ` · ${s.buyoutType === 'dollar' ? '$1 Buyout' : 'FMV'}` : '');
@@ -4332,6 +4591,7 @@ function renderSales() {
 }
 
 function openSaleModal(id = null) {
+  console.log('[Docs] Sale record opened, id:', id);
   editingSaleId = id;
   editingQuoteLinkedId = null;
   const s = id ? appState.sales.find(x => x.id === id) : null;
@@ -4383,6 +4643,13 @@ function openSaleModal(id = null) {
   document.querySelector(`input[name="s-buyout"][value="${buyout}"]`).checked = true;
   updateMaturityDisplay();
   ['s-name','s-model'].forEach(id => document.getElementById(id).classList.remove('invalid'));
+  const sDocsEl = document.querySelector('[data-docs-container="sale"]');
+  if (id && sDocsEl) {
+    sDocsEl.dataset.linkedName = s ? s.customerName : '';
+    renderRecordDocs('sale', id, sDocsEl);
+  } else if (sDocsEl) {
+    sDocsEl.innerHTML = '';
+  }
   document.getElementById('overlay-sale').classList.add('open');
   document.getElementById('s-name').focus();
 }
@@ -4749,11 +5016,180 @@ function calcOverdue(q) {
 }
 
 function updateOverdueBadge() {
-  const count = appState.quotes.filter(q => calcOverdue(q).isOverdue).length;
+  const overdueCount = appState.quotes.filter(q => calcOverdue(q).isOverdue).length;
+  const followupCount = getFollowUpsDue().length;
+  const total = overdueCount + followupCount;
   const badge = document.getElementById('deals-overdue-badge');
   if (!badge) return;
-  badge.textContent = count;
-  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  badge.textContent = total;
+  badge.style.display = total > 0 ? 'inline-flex' : 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGING QUOTE FOLLOW-UP
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Days required between each touch (from previous event)
+const _FU_GAPS = { 1: 8, 2: 8, 3: 14, 4: 30 };
+
+function calcFollowUpStatus(q) {
+  if (!['quoted', 'followup'].includes(q.stage)) return null;
+  const touches = (q.followUpTouches || []).slice().sort((a, b) => a.touch - b.touch);
+  const sentNums = touches.map(t => t.touch);
+
+  const nextTouch = [1, 2, 3, 4].find(t => !sentNums.includes(t));
+  if (!nextTouch) return { status: 'manual_review' };
+
+  const quoteDateStr = q.dateOfQuote || (q.createdAt ? q.createdAt.slice(0, 10) : null);
+  const quoteMs = quoteDateStr ? new Date(quoteDateStr + 'T00:00:00').getTime() : Date.now();
+  const totalDaysFromQuote = Math.floor((Date.now() - quoteMs) / 86400000);
+
+  // If 60+ days from quote creation with zero touches sent → manual review
+  if (touches.length === 0 && totalDaysFromQuote >= 60) {
+    return { status: 'manual_review', daysSince: totalDaysFromQuote };
+  }
+
+  let refMs;
+  if (nextTouch === 1) {
+    refMs = quoteMs;
+  } else {
+    const prev = touches.find(t => t.touch === nextTouch - 1);
+    refMs = prev ? new Date(prev.sentAt).getTime() : quoteMs;
+  }
+
+  const daysSince = Math.floor((Date.now() - refMs) / 86400000);
+  const gap = _FU_GAPS[nextTouch];
+
+  if (daysSince >= gap) {
+    return { status: 'due', touch: nextTouch, daysSince, totalDaysFromQuote };
+  }
+  return { status: 'pending', touch: nextTouch, daysSince, daysLeft: gap - daysSince, totalDaysFromQuote };
+}
+
+function getFollowUpsDue() {
+  return appState.quotes
+    .map(q => ({ q, fu: calcFollowUpStatus(q) }))
+    .filter(({ fu }) => fu && (fu.status === 'due' || fu.status === 'manual_review'))
+    .sort((a, b) => (b.fu.daysSince || 0) - (a.fu.daysSince || 0));
+}
+
+function renderFollowUpWidget(sectionId, listId) {
+  const section = document.getElementById(sectionId);
+  const list    = document.getElementById(listId);
+  if (!section || !list) return;
+  const items = getFollowUpsDue();
+  section.style.display = items.length ? 'block' : 'none';
+  list.innerHTML = '';
+  items.forEach(({ q, fu }) => {
+    const isManual = fu.status === 'manual_review';
+    const firstName = q.firstName || q.customerName?.split(' ')[0] || '';
+    const model = q.forkliftModel || q.lineItems?.[0]?.forkliftModel || '—';
+    const email = q.customerEmail || '';
+
+    const div = document.createElement('div');
+    div.className = 'followup-item' + (isManual ? ' manual-review' : '');
+    div.innerHTML = `
+      <div class="followup-item-body">
+        <div class="followup-item-company">${esc(q.customerName || '—')}${isManual ? ' <span class="badge manual-review">Needs Manual Review</span>' : ''}</div>
+        <div class="followup-item-meta">
+          ${firstName ? esc(firstName) + ' · ' : ''}${esc(model)} · Quoted ${formatDate(q.dateOfQuote)}
+          ${fu.daysSince != null ? ` · ${fu.daysSince}d since last touch` : ''}
+          ${email ? ` · <a href="mailto:${esc(email)}" onclick="event.stopPropagation()" style="color:#1565c0">${esc(email)}</a>` : '<span style="color:#c62828">No email on file</span>'}
+        </div>
+      </div>
+      ${!isManual ? `<span class="followup-touch-badge${fu.touch === 4 ? ' t4' : ''}">Touch ${fu.touch}</span>` : `<span class="followup-touch-badge manual">Review</span>`}
+      ${!isManual && email ? `<button class="btn-save" style="font-size:11px;padding:4px 12px;background:#1565c0;white-space:nowrap" onclick="openFollowUpDraft('${esc(q.id)}')">Draft Email</button>` : ''}
+      ${!isManual && !email ? `<button class="btn-icon" style="font-size:11px;padding:4px 10px;color:#888" onclick="openQuoteModal('${esc(q.id)}')">Add Email</button>` : ''}
+    `;
+    list.appendChild(div);
+  });
+}
+
+// State for the draft modal
+let _fuDraftQuoteId  = null;
+let _fuDraftTouch    = null;
+let _fuDraftEmail    = null;
+
+function openFollowUpDraft(quoteId) {
+  const q = appState.quotes.find(x => x.id === quoteId);
+  if (!q) return;
+  const fu = calcFollowUpStatus(q);
+  if (!fu || fu.status === 'manual_review') return;
+
+  const firstName = q.firstName || q.customerName?.split(' ')[0] || 'there';
+  const model = q.forkliftModel || q.lineItems?.[0]?.forkliftModel || 'forklift';
+  const monthYear = q.dateOfQuote
+    ? new Date(q.dateOfQuote + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '';
+
+  const templates = {
+    1: {
+      subject: `Your forklift quote - still on your radar?`,
+      body: `Hi ${firstName},\n\nI'm going through my open quotes and don't want to keep bugging you if the timing isn't right. Is the ${model} quote still something on your radar for this year, or should I set it aside for now? Either answer is helpful - no wrong response here.\n\nThanks,\nKyle Waite`,
+    },
+    2: {
+      subject: `Quick update on your ${model} quote`,
+      body: `Hi ${firstName},\n\nwanted to make sure you had the latest on the ${model} - pricing and lead times shift quarter to quarter and I'd rather you have current numbers than stale ones. Happy to refresh your quote if it'd help. Is this still something you're weighing?\n\nThanks,\nKyle Waite`,
+    },
+    3: {
+      subject: `Question about your current equipment`,
+      body: `Hi ${firstName},\n\nquick question on the quote I put together for you - the unit you're looking to replace, roughly how many hours is it at now? If it's getting up there, there may be a trade-in number that changes the math on the ${model} quote. Worth a quick look if you're open to it.\n\nThanks,\nKyle Waite`,
+    },
+    4: {
+      subject: `Should I keep your quote open or close it out?`,
+      body: `Hi ${firstName},\n\nI'm cleaning up my open quotes and don't want to let yours sit if the timing isn't right. Before I set the ${model} quote aside, is this still a possibility for you this year, or should I close it out for now? No problem either way - just let me know.\n\nThanks,\nKyle Waite`,
+    },
+  };
+
+  const tmpl = templates[fu.touch] || templates[1];
+  _fuDraftQuoteId = quoteId;
+  _fuDraftTouch   = fu.touch;
+  _fuDraftEmail   = q.customerEmail || '';
+
+  document.getElementById('followup-draft-title').textContent = `Touch ${fu.touch} — ${q.customerName}`;
+  document.getElementById('followup-draft-subject').value = tmpl.subject;
+  document.getElementById('followup-draft-body').value = tmpl.body;
+  document.getElementById('followup-draft-email').textContent = _fuDraftEmail || '(no email on file)';
+  document.getElementById('overlay-followup-draft').classList.add('open');
+}
+
+function _buildMailtoLink(email, subject, body) {
+  const s = subject.replace(/—/g, '-');
+  const b = body.replace(/—/g, '-');
+  return `mailto:${email}?subject=${encodeURIComponent(s)}&body=${encodeURIComponent(b).replace(/%0A/g, '%0D%0A')}`;
+}
+
+function followupOpenEmail() {
+  if (!_fuDraftEmail) { toast('No email address on this quote — add one first', 'warn'); return; }
+  const subject = document.getElementById('followup-draft-subject').value;
+  const body    = document.getElementById('followup-draft-body').value;
+  const url = _buildMailtoLink(_fuDraftEmail, subject, body);
+  console.log('Opening mailto:', url);
+  window.aflAPI.openExternal(url);
+  _logFollowUpTouch(_fuDraftQuoteId, _fuDraftTouch);
+  document.getElementById('overlay-followup-draft').classList.remove('open');
+}
+
+function followupMarkSent() {
+  _logFollowUpTouch(_fuDraftQuoteId, _fuDraftTouch);
+  document.getElementById('overlay-followup-draft').classList.remove('open');
+}
+
+function _logFollowUpTouch(quoteId, touch) {
+  const q = appState.quotes.find(x => x.id === quoteId);
+  if (!q || !touch) return;
+  if (!q.followUpTouches) q.followUpTouches = [];
+  // Remove any existing entry for this touch number (idempotent)
+  q.followUpTouches = q.followUpTouches.filter(t => t.touch !== touch);
+  q.followUpTouches.push({ touch, sentAt: new Date().toISOString() });
+  q.followUpTouches.sort((a, b) => a.touch - b.touch);
+  q.updatedAt = new Date().toISOString();
+  saveData();
+  renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
+  renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
+  updateOverdueBadge();
+  if (activeTab === 'deals') renderDeals();
+  toast(`Touch ${touch} logged for ${q.customerName}`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -4964,9 +5400,13 @@ function saveCustEdit() {
 }
 
 function openCustProfile(id, nameOverride) {
+  console.log('[Docs] openCustProfile called, id:', id, 'name:', nameOverride);
   let c = id ? appState.customers.find(x => x.id === id) : null;
+  // Resolve by name if no ID (name-only rows from sales history)
+  if (!c && nameOverride) c = appState.customers.find(x => x.companyName === nameOverride);
+  const effectiveId = id || (c ? c.id : null);
   const name = c ? c.companyName : (nameOverride || '');
-  viewingCustId = id || null;
+  viewingCustId = effectiveId || null;
 
   // Filter by linked ID (primary) OR by name match (legacy/fallback)
   const custSales = appState.sales.filter(s =>
@@ -5085,13 +5525,14 @@ function openCustProfile(id, nameOverride) {
 
   document.getElementById('cust-profile-full-body').innerHTML = html;
   document.getElementById('cust-profile-title').textContent = name;
-  document.getElementById('edit-cust-profile-btn').style.display = id ? 'inline-flex' : 'none';
-  document.getElementById('add-deal-from-profile').style.display = id ? 'inline-flex' : 'none';
-  if (id && c) {
+  document.getElementById('edit-cust-profile-btn').style.display = effectiveId ? 'inline-flex' : 'none';
+  document.getElementById('add-deal-from-profile').style.display = effectiveId ? 'inline-flex' : 'none';
+  console.log('[Docs] openCustProfile — effectiveId:', effectiveId, 'c found:', !!c);
+  if (effectiveId && c) {
     const docsContainer = document.createElement('div');
     docsContainer.dataset.linkedName = c.companyName;
     document.getElementById('cust-profile-full-body').appendChild(docsContainer);
-    renderRecordDocs('customer', id, docsContainer);
+    renderRecordDocs('customer', effectiveId, docsContainer);
   }
   document.getElementById('overlay-cust-profile').classList.add('open');
 }
@@ -5268,22 +5709,33 @@ function renderPipeline() {
         const acc = {}; resolved.forEach(li => acc[li.lineStage] = (acc[li.lineStage]||0)+1);
         return `<span style="font-size:11px;color:#666">${[acc.won?`${acc.won} Won`:null,acc.notselected?`${acc.notselected} Not Sel.`:null,acc.lost?`${acc.lost} Lost`:null].filter(Boolean).join(' · ')}</span>`;
       })();
+      const fuStatus = calcFollowUpStatus(q);
       const card = document.createElement('div');
       card.className = 'pipeline-card' + (isOverdue ? ' overdue' : '');
+      card.dataset.quoteId = q.id;
+      card.style.cursor = 'pointer';
       const overdueHtml = isOverdue
         ? `<span class="pc-followup overdue"><span class="overdue-dot"></span>Overdue by ${daysOverdue}d</span>`
         : (q.followUpDate ? `<span class="pc-followup">Follow-up: ${formatDate(q.followUpDate)}</span>` : '');
+      const fuBadgeHtml = fuStatus?.status === 'manual_review'
+        ? `<span class="badge manual-review" style="margin-top:3px">Needs Manual Review</span>`
+        : (fuStatus?.status === 'due' ? `<span style="color:#1565c0;font-size:11px;font-weight:600;margin-top:2px">Touch ${fuStatus.touch} due (${fuStatus.daysSince}d)</span>` : '');
       card.innerHTML = `
         <div class="pc-name">${esc(q.customerName)}</div>
         <div class="pc-meta">
-          <span>${formatDate(q.dateOfQuote)}${q.salesperson ? ' · ' + esc(q.salesperson) : ''}</span>
-          <span>${esc(modelStr)}</span>
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px">
+            ${modelStr ? `<span class="badge model">${esc(modelStr)}</span>` : '<span style="color:#aaa;font-size:11px">No model</span>'}
+            <span class="badge stage-${stage}">${STAGE_LABELS[stage] || stage}</span>
+          </div>
           ${q.askingPrice ? `<span class="pc-price">${fmtMoney(q.askingPrice)}</span>` : ''}
+          <span>${formatDate(q.dateOfQuote)}${q.salesperson ? ' · ' + esc(q.salesperson) : ''}</span>
           ${overdueHtml}${outcomeHtml}
+          ${fuBadgeHtml}
           ${stage === 'lost' && q.lossReason ? `<span style="color:#9e9e9e;font-size:11px">${LOSS_LABELS[q.lossReason] || q.lossReason}</span>` : ''}
         </div>
         <div class="pc-actions">
           <button class="btn-icon" data-id="${q.id}" data-action="edit-quote" style="flex:1">Edit</button>
+          ${fuStatus?.status === 'due' && q.customerEmail ? `<button class="btn-save" style="font-size:11px;padding:3px 8px;background:#1565c0" onclick="openFollowUpDraft('${q.id}')">Draft Email</button>` : ''}
           ${stage === 'quoted'   ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-followup">Follow-Up</button>` : ''}
           ${stage === 'followup' ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-quoted">← Quoted</button>` : ''}
           ${(stage === 'quoted' || stage === 'followup') ? `<button class="btn-icon convert" data-id="${q.id}" data-action="pl-won">Won ✓</button>` : ''}
@@ -5603,17 +6055,26 @@ function saveCustomerContact() {
 // LEADS
 // ══════════════════════════════════════════════════════════════════════════════
 const LEAD_STATUS_LABELS = {
-  // Auto-computed statuses (new)
-  potential:'Potential', contact:'Contact', active:'Active', customer:'Customer', inactive:'Inactive',
-  // Legacy stored statuses (kept for backwards compatibility)
+  // Manual statuses
+  prospect:'Prospect', lead:'Lead', customer:'Customer',
+  dormant:'Dormant', not_interested:'Not Interested',
+  active_customer:'Active Customer', inactive_customer:'Inactive Customer',
+  former_customer:'Former Customer',
+  // Auto-computed statuses
+  potential:'Potential', contact:'Contact', active:'Active', inactive:'Inactive',
+  // Legacy stored statuses (backwards compatibility)
   potential_customer:'Potential Customer', new:'New', contacted:'Contacted', followup:'Follow-Up',
-  qualified:'Qualified', not_interested:'Not Interested', converted:'Converted',
+  qualified:'Qualified', converted:'Converted',
   customer_record:'Customer Record', quote_auto:'Auto (Quote)', sale_auto:'Auto (Sale)',
 };
 const LEAD_INDUSTRY_LABELS = { warehouse:'Warehouse', manufacturing:'Manufacturing', distribution:'Distribution', food_beverage:'Food & Beverage', construction:'Construction', automotive:'Automotive', retail:'Retail', other:'Other' };
 const LEAD_SOURCE_LABELS = { territory_prospecting:'Territory Prospecting', cold_call:'Cold Call', google_search:'Google Search', referral:'Referral', trade_show:'Trade Show', linkedin:'LinkedIn', imported_list:'Imported List', quote_auto:'From Quote', sale_auto:'From Sale', customer_record:'Customer Record', uio_import:'UIO Import', aging_report_import:'Aging Report Import', other:'Other' };
 
 function computeContactStatus(l) {
+  // Respect explicit manual status overrides before auto-computing
+  const manualStatuses = ['prospect', 'lead', 'customer', 'dormant', 'not_interested', 'active_customer', 'inactive_customer', 'former_customer'];
+  if (l.status && manualStatuses.includes(l.status)) return l.status;
+
   const lid = l.id;
   const name = (l.companyName || '').toLowerCase();
   // Customer: has at least one closed sale
@@ -5707,6 +6168,7 @@ function upsertContact(fields, source) {
 
 let editingLeadId = null;
 let viewingLeadId = null;
+let leadProfileFromFleetSearch = false;
 let leadsView = 'list';
 let leadsSortCol = 'createdAt';
 let leadsSortAsc = false;
@@ -5870,6 +6332,9 @@ function renderLeadsTerritoryView() {
 
 function renderSettings() {
   renderLeadGenSettings();
+  // Populate home address input
+  const haInput = document.getElementById('home-address-input');
+  if (haInput) haInput.value = getHomeAddress();
   const chips = document.getElementById('territory-zip-chips');
   if (!chips) return;
   const zips = getTerritoryZips();
@@ -5952,7 +6417,7 @@ function openLeadModal(id = null) {
   document.getElementById('l-zip').value         = l ? (l.zip || '') : '';
   document.getElementById('l-industry').value    = l ? (l.industry || '') : '';
   document.getElementById('l-source').value      = l ? (l.leadSource || 'territory_prospecting') : 'territory_prospecting';
-  document.getElementById('l-status').value      = l ? (l.status || 'potential_customer') : 'potential_customer';
+  document.getElementById('l-status').value      = l ? (l.status || 'prospect') : 'prospect';
   document.getElementById('l-salesperson').value = l ? (l.salesperson || '') : (localStorage.getItem('aflRepName') || '');
   document.getElementById('l-notes').value       = l ? (l.notes || '') : '';
   document.getElementById('l-sc-firstname').value = l ? (l.sc2FirstName || '') : '';
@@ -5998,6 +6463,8 @@ function saveLead(andStartQuote = false) {
   const fields = _readLeadFormFields();
   if (!fields.companyName) { markInvalid(document.getElementById('l-company')); return; }
 
+  console.log('[Contact] Saving status:', fields.status);
+
   const now = new Date().toISOString();
 
   if (editingLeadId) {
@@ -6011,8 +6478,14 @@ function saveLead(andStartQuote = false) {
       l.statusHistory.push({ date: now, fromStatus: oldStatus, toStatus: fields.status, note: '' });
     }
     toast('Lead updated');
+    if (window.db && window._fs) {
+      const { doc: fsDoc, setDoc: fsSet } = window._fs;
+      fsSet(fsDoc(window.db, 'leads', l.id), l)
+        .then(() => console.log('[Contact] Firestore save OK — id:', l.id, 'status:', l.status))
+        .catch(err => console.error('[Contact] Firestore save error:', err));
+    }
   } else {
-    appState.leads.push({
+    const newLead = {
       id: genId('l'),
       ...fields,
       statusHistory: [],
@@ -6021,8 +6494,15 @@ function saveLead(andStartQuote = false) {
       updatedAt:     now,
       lastActivityDate: now.slice(0, 10),
       linkedCustomerId: null,
-    });
+    };
+    appState.leads.push(newLead);
     toast('Lead saved');
+    if (window.db && window._fs) {
+      const { doc: fsDoc, setDoc: fsSet } = window._fs;
+      fsSet(fsDoc(window.db, 'leads', newLead.id), newLead)
+        .then(() => console.log('[Contact] Firestore save OK — id:', newLead.id, 'status:', newLead.status))
+        .catch(err => console.error('[Contact] Firestore save error:', err));
+    }
   }
 
   document.getElementById('overlay-lead').classList.remove('open');
@@ -6063,7 +6543,10 @@ function openLeadByCompany(companyName) {
   else toast('No contact record found for this company', 'warn');
 }
 
-function openLeadProfile(id) {
+function openLeadProfile(id, opts = {}) {
+  console.log('[Docs] Contact record opened, id:', id);
+  if (opts.fromFleetSearch === true) leadProfileFromFleetSearch = true;
+  else if (opts.fromFleetSearch === false || (opts.fromFleetSearch === undefined && id !== viewingLeadId)) leadProfileFromFleetSearch = false;
   viewingLeadId = id;
   const l = appState.leads.find(x => x.id === id);
   if (!l) return;
@@ -6072,6 +6555,7 @@ function openLeadProfile(id) {
   const dunsDisplay = (l.duns && l.duns.toLowerCase().trim() !== (l.companyName||'').toLowerCase().trim()) ? ` (${l.duns})` : '';
   document.getElementById('lead-profile-title').textContent = (l.companyName || '') + dunsDisplay;
   document.getElementById('start-quote-from-lead-btn').style.display = cs === 'inactive' ? 'none' : 'inline-flex';
+  document.getElementById('add-to-daily-log-from-lead-btn').style.display = leadProfileFromFleetSearch ? 'inline-flex' : 'none';
 
   // Linked quotes
   const lname = (l.companyName || '').toLowerCase();
@@ -6143,8 +6627,18 @@ function openLeadProfile(id) {
       </div>
     </div>` : '';
 
+  const fleetSearchActions = leadProfileFromFleetSearch ? `
+    <div id="lead-dl-action-bar" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-start">
+      <div style="position:relative">
+        <button class="btn-save" style="background:#2e7d32;font-size:13px;padding:8px 16px" onclick="showAddToDailyLogPrompt('${l.id}', this, 'lead-dl-feedback')">📅 Add to Daily Log</button>
+      </div>
+      ${cs !== 'inactive' ? `<button class="btn-save" style="background:#1a3a7a;font-size:13px;padding:8px 16px" onclick="startQuoteFromLead('${l.id}')">Start Quote →</button>` : ''}
+    </div>
+    <div id="lead-dl-feedback" class="fs-dl-feedback" style="display:none"></div>` : '';
+
   document.getElementById('lead-profile-body').innerHTML = `
     ${reviewBannerHtml}
+    ${fleetSearchActions}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div>
         <div class="cust-info-label">Status</div>
@@ -6198,6 +6692,10 @@ function openLeadProfile(id) {
       <button class="btn-icon" style="margin-top:4px;font-size:12px" onclick="saveLeadProfileNotes('${l.id}')">Save Notes</button>
     </div>
     <div style="margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:6px">Visit History</div>
+      <div id="lead-visit-history-${l.id}">Loading&hellip;</div>
+    </div>
+    <div style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="section-title" style="margin-bottom:0">Decision Makers (Apollo.io)</div>
         <button class="btn-save" onclick="findDecisionMakers('${l.id}')" style="font-size:12px;padding:5px 12px;background:#3f51b5"
@@ -6217,6 +6715,9 @@ function openLeadProfile(id) {
         <button class="btn-save" style="align-self:flex-end;white-space:nowrap" onclick="addLeadNote('${l.id}')">Add Note</button>
       </div>
     </div>`;
+
+  // Load visit history from Daily Log
+  loadLeadVisitHistory(l.id, l.companyName);
 
   const leadDocsContainer = document.createElement('div');
   leadDocsContainer.style.marginTop = '16px';
@@ -7017,27 +7518,397 @@ async function deleteDoc(docId, btn) {
 }
 
 function renderRecordDocs(linkedType, linkedId, containerEl) {
-  const docs = appState.documents.filter(d => d.linkedType === linkedType && d.linkedId === linkedId);
+  console.log('[Docs] Loading for record:', linkedId, '- clearing previous docs');
+  containerEl.innerHTML = '';
+  containerEl.id = `record-docs-${linkedType}-${linkedId}`;
+  // Support both old field names (linkedId/linkedType) and new (contactLinkedId/contactLinkedType).
+  // Also check parentContactId (new cross-link) and contactLinkedId-as-contact (old cross-link).
+  // IDs are prefixed (c_, q_, s_, l_) so matching by ID alone is safe without a type check.
+  const docs = (appState.contactDocuments || []).filter(d =>
+    d.contactLinkedId === linkedId ||  // new primary link OR old contact cross-link
+    d.linkedId        === linkedId ||  // old primary link
+    d.parentContactId === linkedId     // new contact cross-link
+  ).sort((a, b) => (b.createdAt || '') > (a.createdAt || '') ? 1 : -1);
+  console.log('[Docs] Found', docs.length, 'docs for', linkedId, ':', docs.map(d => d.displayName));
   const linkedName = containerEl.dataset.linkedName || '';
-  let html = `<div class="linked-tasks-section">
+  const CAT_LABELS = { quote:'Quote', signed_quote:'Signed Quote', contract:'Contract', correspondence:'Correspondence', other:'Other' };
+  // Use data attributes on the button to avoid double-quote breakage in onclick HTML attribute
+  let html = `<div class="linked-tasks-section" style="margin-top:12px">
     <div class="linked-tasks-hdr">
       Documents (${docs.length})
-      <button class="btn-icon" style="font-size:11px" onclick="startDocUpload({linkedType:'${linkedType}',linkedId:'${linkedId}',linkedName:'${linkedName}'})">+ Attach</button>
+      <button class="btn-icon" style="font-size:11px" data-lt="${linkedType}" data-lid="${linkedId}" data-ln="${esc(linkedName)}" onclick="startContactDocUploadFromEl(this)">+ Attach</button>
     </div>`;
   if (!docs.length) {
-    html += `<div style="color:#bbb;font-size:12px;padding:4px 0">No documents attached to this record.</div>`;
+    html += `<div style="color:#bbb;font-size:12px;padding:4px 0">No documents attached.</div>`;
   } else {
     for (const d of docs) {
       const icon = docIcon(d.ext);
-      html += `<div class="dash-doc-row" style="padding:6px 0;border-bottom:1px solid #f5f5f5;cursor:pointer" onclick="openDocById('${d.id}')">
+      const catLabel = CAT_LABELS[d.category] || 'Other';
+      html += `<div class="dash-doc-row" style="cursor:default">
         <div class="doc-icon-sm" style="background:${icon.bg};color:${icon.color}">${icon.label}</div>
-        <div style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.displayName||d.originalFileName)}</div>
-        <button class="btn-icon" style="flex-shrink:0;font-size:11px;color:#c62828" onclick="event.stopPropagation();deleteDoc('${d.id}',this)">✕</button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.displayName||d.originalFileName)}</div>
+          <div style="font-size:11px;color:#888;margin-top:1px">${catLabel}${d.fileSize ? ' · ' + fmtFileSize(d.fileSize) : ''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon" style="font-size:11px" onclick="openContactDoc('${d.id}')">Open</button>
+          <button class="btn-icon" style="font-size:11px" onclick="downloadContactDoc('${d.id}')">↓ Save</button>
+          <button class="btn-icon" style="font-size:11px;color:#c62828" onclick="deleteContactDoc('${d.id}',this)">✕</button>
+        </div>
       </div>`;
     }
   }
   html += '</div>';
   containerEl.innerHTML = html;
+}
+
+function rerenderRecordDocs(type, id) {
+  const el = document.getElementById(`record-docs-${type}-${id}`);
+  if (el) renderRecordDocs(type, id, el);
+}
+
+let _cdUploadContext = null;
+let _cdPendingFile   = null;
+
+function startContactDocUploadFromEl(btn) {
+  startContactDocUploadInline(btn.dataset.lt, btn.dataset.lid, btn.dataset.ln || '');
+}
+
+async function startContactDocUpload(context) {
+  console.log('[Docs] startContactDocUpload called', context);
+  _cdUploadContext = context || null;
+  console.log('[Docs] calling pickDocForUpload IPC...');
+  const result = await window.aflAPI.pickDocForUpload();
+  console.log('[Docs] pickDocForUpload result:', result ? (result.error || result.originalFileName) : 'null (canceled)');
+  if (!result) return;
+  if (result.error) { toast('Could not read file: ' + result.error, 'error'); return; }
+  _cdPendingFile = result;
+  const icon = docIcon(result.ext);
+  const iconEl = document.getElementById('cd-file-icon');
+  iconEl.style.cssText = `flex-shrink:0;width:40px;height:40px;font-size:10px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;background:${icon.bg};color:${icon.color};`;
+  iconEl.textContent = icon.label;
+  document.getElementById('cd-file-name').textContent = result.originalFileName;
+  document.getElementById('cd-file-size').textContent = fmtFileSize(result.fileSize);
+  document.getElementById('cd-display-name').value = result.originalFileName.replace(/\.[^/.]+$/, '');
+  document.getElementById('cd-category').value = 'other';
+  document.getElementById('cd-description').value = '';
+  const linkInfo = document.getElementById('cd-link-info');
+  if (context && context.linkedName) {
+    document.getElementById('cd-link-label').textContent = context.linkedName;
+    linkInfo.style.display = 'block';
+  } else {
+    linkInfo.style.display = 'none';
+  }
+  document.getElementById('cd-progress').style.display = 'none';
+  document.getElementById('cd-progress-bar').style.width = '0%';
+  document.getElementById('cd-save').disabled = false;
+  document.getElementById('cd-save').textContent = 'Upload';
+  document.getElementById('overlay-contact-doc-upload').classList.add('open');
+}
+
+async function saveContactDoc() {
+  if (!_cdPendingFile || !_cdUploadContext) return;
+  console.log('[Docs] saveContactDoc — context:', _cdUploadContext);
+  const { doc: fsDoc, setDoc: fsSetDoc } = window._fs;
+  const { ref: fsRef, uploadBytesResumable: fsUpload, getDownloadURL: fsGetUrl } = window._fss;
+  const displayName = document.getElementById('cd-display-name').value.trim() || _cdPendingFile.originalFileName;
+  const category    = document.getElementById('cd-category').value;
+  const description = document.getElementById('cd-description').value.trim();
+  const saveBtn = document.getElementById('cd-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Uploading…';
+  document.getElementById('cd-progress').style.display = 'block';
+  try {
+    const binStr = atob(_cdPendingFile.base64);
+    const bytes  = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    const docId       = genId('cdoc');
+    const storagePath = `contactDocuments/${docId}/${_cdPendingFile.originalFileName}`;
+    const storageRef  = fsRef(window.storage, storagePath);
+    console.log('[Docs] starting Storage upload to', storagePath);
+    await new Promise((resolve, reject) => {
+      const task = fsUpload(storageRef, bytes);
+      task.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          document.getElementById('cd-progress-bar').style.width = pct + '%';
+          document.getElementById('cd-progress-text').textContent = `Uploading… ${pct}%`;
+        },
+        reject,
+        resolve
+      );
+    });
+    console.log('[Docs] Storage upload complete, getting download URL...');
+    const storageUrl = await fsGetUrl(storageRef);
+    // contactLinkedId/contactLinkedType ARE the primary link fields.
+    // For quote/sale: also record the parent contact so the contact profile shows this doc.
+    let parentContactId   = null;
+    let parentContactType = null;
+    if (_cdUploadContext.linkedType === 'quote') {
+      const q = appState.quotes.find(x => x.id === _cdUploadContext.linkedId);
+      if (q && q.linkedCustomerId) { parentContactId = q.linkedCustomerId; parentContactType = 'customer'; }
+    } else if (_cdUploadContext.linkedType === 'sale') {
+      const s = appState.sales.find(x => x.id === _cdUploadContext.linkedId);
+      const cid = s && (s.linkedCustomerId || s.customerId);
+      if (cid) { parentContactId = cid; parentContactType = 'customer'; }
+    }
+    const docData = {
+      id: docId,
+      // Write both old and new field names so either query format finds this doc
+      linkedId:          _cdUploadContext.linkedId,
+      linkedType:        _cdUploadContext.linkedType,
+      contactLinkedId:   _cdUploadContext.linkedId,
+      contactLinkedType: _cdUploadContext.linkedType,
+      linkedName:        _cdUploadContext.linkedName || '',
+      parentContactId,
+      parentContactType,
+      displayName,
+      originalFileName: _cdPendingFile.originalFileName,
+      ext:              _cdPendingFile.ext,
+      fileSize:         _cdPendingFile.fileSize,
+      storagePath,
+      storageUrl,
+      category,
+      description,
+      createdAt: new Date().toISOString(),
+    };
+    console.log('[Docs] saving to Firestore contactDocuments:', docId);
+    await fsSetDoc(fsDoc(window.db, 'contactDocuments', docId), docData);
+    appState.contactDocuments = appState.contactDocuments || [];
+    appState.contactDocuments.push(docData);
+    console.log('[Docs] Firestore save complete');
+    document.getElementById('overlay-contact-doc-upload').classList.remove('open');
+    rerenderRecordDocs(_cdUploadContext.linkedType, _cdUploadContext.linkedId);
+    if (parentContactId) rerenderRecordDocs(parentContactType, parentContactId);
+    _cdUploadContext = null;
+    _cdPendingFile   = null;
+    toast('Document uploaded');
+  } catch (err) {
+    console.error('[Docs] upload error:', err);
+    toast('Upload failed: ' + err.message, 'error');
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Upload';
+  }
+}
+
+// ── Inline upload flow (record-level, no separate modal) ─────────────────────
+
+async function startContactDocUploadInline(linkedType, linkedId, linkedName) {
+  console.log('[Docs] startContactDocUploadInline', linkedType, linkedId);
+  let fileData;
+  if (window.electronAPI) {
+    const dialogResult = await window.electronAPI.openFileDialog();
+    console.log('[Docs] openFileDialog result:', dialogResult);
+    if (!dialogResult || dialogResult.canceled || !dialogResult.filePaths.length) return;
+    fileData = await window.electronAPI.readFile(dialogResult.filePaths[0]);
+    console.log('[Docs] readFile result:', fileData ? (fileData.error || fileData.originalFileName) : 'null');
+  } else {
+    fileData = await window.aflAPI.pickDocForUpload();
+    console.log('[Docs] pickDocForUpload result:', fileData ? (fileData.error || fileData.originalFileName) : 'null (canceled)');
+  }
+  if (!fileData) return;
+  if (fileData.error) { toast('Could not read file: ' + fileData.error, 'error'); return; }
+  const containerEl = document.getElementById(`record-docs-${linkedType}-${linkedId}`);
+  if (!containerEl) { toast('Document container not found — close and reopen the record.', 'error'); return; }
+  _renderInlineUploadForm(containerEl, linkedType, linkedId, linkedName, fileData);
+}
+
+function _renderInlineUploadForm(containerEl, linkedType, linkedId, linkedName, fileData) {
+  const existing = containerEl.querySelector('.inline-upload-form');
+  if (existing) existing.remove();
+  const icon = docIcon(fileData.ext);
+  const form = document.createElement('div');
+  form.className = 'inline-upload-form linked-tasks-section';
+  form.style.cssText = 'background:#f0f4ff;border:1px solid #c5d3f5;border-radius:8px;padding:14px;margin-top:12px;margin-bottom:4px';
+  form._fileData = fileData;
+  form.innerHTML = `
+    <div style="font-weight:700;font-size:13px;color:#1565c0;margin-bottom:10px">Attach Document${linkedName ? ' — ' + esc(linkedName) : ''}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 10px;background:#fff;border:1px solid #dde;border-radius:6px">
+      <div style="flex-shrink:0;width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:${icon.bg};color:${icon.color}">${icon.label}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(fileData.originalFileName)}</div>
+        <div style="font-size:11px;color:#888">${fmtFileSize(fileData.fileSize)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <div style="flex:1;min-width:140px">
+        <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:3px">Document Name</label>
+        <input class="form-input" id="iuf-name-${linkedId}" style="font-size:13px;padding:6px 8px" value="${esc(fileData.originalFileName.replace(/\.[^/.]+$/, ''))}">
+      </div>
+      <div style="flex:1;min-width:130px">
+        <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:3px">Category</label>
+        <select class="form-select" id="iuf-cat-${linkedId}" style="font-size:13px">
+          <option value="other">Other</option>
+          <option value="quote">Quote</option>
+          <option value="signed_quote">Signed Quote</option>
+          <option value="contract">Contract</option>
+          <option value="correspondence">Correspondence</option>
+        </select>
+      </div>
+    </div>
+    <input class="form-input" id="iuf-desc-${linkedId}" style="font-size:13px;padding:6px 8px;margin-bottom:10px;width:100%;box-sizing:border-box" placeholder="Description (optional)">
+    <div id="iuf-progress-${linkedId}" style="display:none;margin-bottom:8px">
+      <div style="background:#e0e0e0;border-radius:4px;height:6px;overflow:hidden">
+        <div id="iuf-bar-${linkedId}" style="height:100%;background:#1565c0;width:0%;transition:width 0.2s"></div>
+      </div>
+      <div id="iuf-pct-${linkedId}" style="font-size:11px;color:#888;text-align:center;margin-top:3px">Uploading…</div>
+    </div>
+    <div id="iuf-error-${linkedId}" style="display:none;font-size:12px;color:#c62828;padding:6px 10px;background:#fff5f5;border:1px solid #fcc;border-radius:4px;margin-bottom:8px">Upload failed — please try again</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-cancel" style="font-size:13px" onclick="cancelInlineUpload('${linkedType}','${linkedId}')">Cancel</button>
+      <button class="btn-save" id="iuf-btn-${linkedId}" style="font-size:13px;padding:6px 18px" onclick="confirmInlineUpload('${linkedType}','${linkedId}')">Upload</button>
+    </div>`;
+  containerEl.appendChild(form);
+}
+
+function cancelInlineUpload(linkedType, linkedId) {
+  const containerEl = document.getElementById(`record-docs-${linkedType}-${linkedId}`);
+  if (containerEl) { const f = containerEl.querySelector('.inline-upload-form'); if (f) f.remove(); }
+}
+
+async function confirmInlineUpload(linkedType, linkedId) {
+  const containerEl = document.getElementById(`record-docs-${linkedType}-${linkedId}`);
+  if (!containerEl) return;
+  const form = containerEl.querySelector('.inline-upload-form');
+  if (!form || !form._fileData) return;
+  const fileData    = form._fileData;
+  const displayName = (document.getElementById(`iuf-name-${linkedId}`)?.value || '').trim() || fileData.originalFileName;
+  const category    = document.getElementById(`iuf-cat-${linkedId}`)?.value  || 'other';
+  const description = (document.getElementById(`iuf-desc-${linkedId}`)?.value || '').trim();
+  const btn         = document.getElementById(`iuf-btn-${linkedId}`);
+  const errorEl     = document.getElementById(`iuf-error-${linkedId}`);
+  const progressEl  = document.getElementById(`iuf-progress-${linkedId}`);
+  const barEl       = document.getElementById(`iuf-bar-${linkedId}`);
+  const pctEl       = document.getElementById(`iuf-pct-${linkedId}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+  if (errorEl) errorEl.style.display = 'none';
+  if (progressEl) progressEl.style.display = 'block';
+  try {
+    console.log('[Docs] confirmInlineUpload — uploading to Firebase Storage:', linkedType, linkedId);
+    if (!window._fss) throw new Error('Firebase Storage not ready — check console for auth errors');
+    const { ref: fsRef, uploadBytesResumable: fsUpload, getDownloadURL: fsGetUrl } = window._fss;
+    const { doc: fsDoc, setDoc: fsSetDoc } = window._fs;
+    const binStr = atob(fileData.base64);
+    const bytes  = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    const docId       = genId('cdoc');
+    const ts          = Date.now();
+    const storagePath = `documents/${linkedId}/${ts}_${fileData.originalFileName}`;
+    const storageRef  = fsRef(window.storage, storagePath);
+    console.log('[Docs] uploading to', storagePath);
+    await new Promise((resolve, reject) => {
+      const task = fsUpload(storageRef, bytes);
+      task.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          if (barEl) barEl.style.width = pct + '%';
+          if (pctEl) pctEl.textContent = `Uploading… ${pct}%`;
+        },
+        reject,
+        resolve
+      );
+    });
+    console.log('[Docs] Storage upload complete — getting download URL');
+    const downloadURL = await fsGetUrl(storageRef);
+    let parentContactId = null, parentContactType = null;
+    if (linkedType === 'quote') {
+      const q = appState.quotes.find(x => x.id === linkedId);
+      if (q && q.linkedCustomerId) { parentContactId = q.linkedCustomerId; parentContactType = 'customer'; }
+    } else if (linkedType === 'sale') {
+      const s = appState.sales.find(x => x.id === linkedId);
+      const cid = s && (s.linkedCustomerId || s.customerId);
+      if (cid) { parentContactId = cid; parentContactType = 'customer'; }
+    } else if (linkedType === 'lead') {
+      const l = appState.leads.find(x => x.id === linkedId);
+      if (l && l.linkedCustomerId) { parentContactId = l.linkedCustomerId; parentContactType = 'customer'; }
+    }
+    const docData = {
+      id: docId,
+      displayName,
+      originalFileName: fileData.originalFileName,
+      ext:              fileData.ext,
+      fileSize:         fileData.fileSize,
+      storagePath,
+      downloadURL,
+      storageUrl:        downloadURL,
+      linkedId,
+      linkedType,
+      contactLinkedId:   linkedId,
+      contactLinkedType: linkedType,
+      parentContactId,
+      parentContactType,
+      category,
+      description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    console.log('[Docs] saving to Firestore contactDocuments:', docId);
+    await fsSetDoc(fsDoc(window.db, 'contactDocuments', docId), docData);
+    appState.contactDocuments = appState.contactDocuments || [];
+    appState.contactDocuments.push(docData);
+    console.log('[Docs] Found', appState.contactDocuments.filter(d => d.contactLinkedId === linkedId || d.linkedId === linkedId).length, 'docs for', linkedId, ':', appState.contactDocuments.filter(d => d.contactLinkedId === linkedId || d.linkedId === linkedId).map(d => d.displayName));
+    form.remove();
+    rerenderRecordDocs(linkedType, linkedId);
+    if (parentContactId) rerenderRecordDocs(parentContactType, parentContactId);
+    toast('Document uploaded');
+  } catch (err) {
+    console.error('[Docs] upload error:', err);
+    if (errorEl) { errorEl.textContent = 'Upload failed — ' + err.message; errorEl.style.display = 'block'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+    if (progressEl) progressEl.style.display = 'none';
+  }
+}
+
+async function deleteContactDoc(docId, btn) {
+  const d = (appState.contactDocuments || []).find(x => x.id === docId);
+  if (!d) return;
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = 'Confirm?';
+    btn.style.cssText = 'background:#c62828;color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;border:none;cursor:pointer';
+    setTimeout(() => {
+      if (btn.dataset.confirm === '1') {
+        btn.dataset.confirm = '';
+        btn.textContent = '✕';
+        btn.style.cssText = 'color:#c62828;font-size:11px';
+      }
+    }, 3000);
+    return;
+  }
+  try {
+    const { doc: fsDoc, deleteDoc: fsDelete } = window._fs;
+    const { ref: fsRef, deleteObject: fsDeleteObj } = window._fss;
+    await fsDelete(fsDoc(window.db, 'contactDocuments', docId));
+    if (d.storagePath) { try { await fsDeleteObj(fsRef(window.storage, d.storagePath)); } catch {} }
+    appState.contactDocuments = appState.contactDocuments.filter(x => x.id !== docId);
+    // Rerender using whichever field set is present (new or old schema)
+    const _dType = d.linkedType || d.contactLinkedType;
+    const _dId   = d.linkedId   || d.contactLinkedId;
+    if (_dType && _dId) rerenderRecordDocs(_dType, _dId);
+    if (d.parentContactId) rerenderRecordDocs(d.parentContactType, d.parentContactId);
+    // Old schema: contactLinkedId stored the contact cross-link
+    if (d.contactLinkedId && d.contactLinkedId !== _dId) rerenderRecordDocs(d.contactLinkedType || 'customer', d.contactLinkedId);
+    toast('Document deleted');
+  } catch (err) {
+    toast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+async function downloadContactDoc(docId) {
+  const d = (appState.contactDocuments || []).find(x => x.id === docId);
+  if (!d || !d.storageUrl) return;
+  const name = d.displayName || d.originalFileName;
+  const result = await window.aflAPI.downloadDocUrl(d.storageUrl, name);
+  if (result && result.error) toast('Download failed: ' + result.error, 'error');
+  else if (result && !result.canceled) toast('File saved');
+}
+
+async function openContactDoc(docId) {
+  const d = (appState.contactDocuments || []).find(x => x.id === docId);
+  const downloadURL = d ? (d.downloadURL || d.storageUrl) : null;
+  console.log('[Docs] Open button clicked, downloadURL:', downloadURL);
+  if (!downloadURL) return;
+  window.aflAPI.openExternal(downloadURL);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -7060,6 +7931,13 @@ document.getElementById('cancel-quote').addEventListener('click', () => document
 
 document.getElementById('save-sale').addEventListener('click', saveSale);
 document.getElementById('cancel-sale').addEventListener('click', () => document.getElementById('overlay-sale').classList.remove('open'));
+
+document.getElementById('cd-save').addEventListener('click', saveContactDoc);
+document.getElementById('cd-cancel').addEventListener('click', () => {
+  document.getElementById('overlay-contact-doc-upload').classList.remove('open');
+  _cdUploadContext = null;
+  _cdPendingFile   = null;
+});
 
 document.getElementById('cancel-import').addEventListener('click', () => document.getElementById('overlay-import').classList.remove('open'));
 document.getElementById('do-import').addEventListener('click', doImport);
@@ -7096,7 +7974,15 @@ document.getElementById('q-stage').addEventListener('change', function () {
 // Deals tab action delegation (kanban cards + list rows)
 document.getElementById('tab-deals').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
-  if (!btn) return;
+  if (!btn) {
+    // Clicking a pipeline card body (not an action button) opens the edit modal
+    const card = e.target.closest('.pipeline-card[data-quote-id]');
+    if (card && !e.target.closest('.pc-actions')) openQuoteModal(card.dataset.quoteId);
+    // Clicking a deals list row (not an action button) also opens the edit modal
+    const tr = e.target.closest('tr[data-quote-id]');
+    if (tr) openQuoteModal(tr.dataset.quoteId);
+    return;
+  }
   const { id, action } = btn.dataset;
   if (action === 'edit-quote') openQuoteModal(id);
   else if (action === 'convert') convertQuoteToSale(id);
@@ -7193,7 +8079,7 @@ document.getElementById('docs-view-list-btn').addEventListener('click', () => {
 });
 
 // Close modals on overlay click
-['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup','overlay-uio-import','overlay-add-fleet-unit','overlay-aging-import','overlay-aging-review'].forEach(id => {
+['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup','overlay-uio-import','overlay-add-fleet-unit','overlay-aging-import','overlay-aging-review','overlay-contact-doc-upload'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
   });
@@ -7341,20 +8227,1193 @@ document.getElementById('sales-filter-bar').addEventListener('click', e => {
 // Sales list actions
 document.getElementById('sales-list').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
-  if (!btn) return;
+  if (!btn) {
+    // Clicking a sale card body (not an action button) opens the edit modal
+    const card = e.target.closest('.record-card[data-sale-id]');
+    if (card && !e.target.closest('.record-actions')) openSaleModal(card.dataset.saleId);
+    return;
+  }
   const { id, action } = btn.dataset;
   if (action === 'edit-sale') openSaleModal(id);
   else if (action === 'delete-sale') deleteSale(id, btn);
 });
 
+// ══ DAILY LOG ══════════════════════════════════════════════════════════════════
+
+// State
+let dailyLog        = null;   // current activityLog doc
+let dailyLogVisits  = [];     // visitLog docs for current day
+let dailyLogHistory = [];     // all past activityLog docs
+let dlView          = 'plan'; // 'plan' | 'history'
+let dlHistoryDate   = null;
+let dlHistorySearch = '';
+let dlHistoryFrom   = '';
+let dlHistoryTo     = '';
+let dlCurrentDate   = null;   // date currently loaded in plan view
+
+// ── Settings helpers ──────────────────────────────────────────────────────────
+function getHomeAddress() {
+  return (appState.settings && appState.settings.homeAddress) ? appState.settings.homeAddress : '';
+}
+
+async function saveHomeAddress() {
+  const val = (document.getElementById('home-address-input')?.value || '').trim();
+  if (!appState.settings) appState.settings = {};
+  appState.settings.homeAddress = val;
+  await saveData();
+  const status = document.getElementById('home-address-status');
+  if (status) {
+    status.textContent = val ? 'Saved!' : 'Cleared.';
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  }
+  toast('Home address saved');
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadDailyLog(date) {
+  if (!window.db || !window._fs) { dailyLog = null; return; }
+  try {
+    const { collection, query, where, getDocs, doc, setDoc } = window._fs;
+    const q = query(collection(window.db, 'activityLogs'), where('date', '==', date));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      dailyLog = snap.docs[0].data();
+    } else {
+      const now = new Date().toISOString();
+      const id = genId('al');
+      dailyLog = { id, date, stops: [], optimized: false, createdAt: now, updatedAt: now };
+      await setDoc(doc(window.db, 'activityLogs', id), dailyLog);
+    }
+    await loadDailyLogVisits(dailyLog.id);
+  } catch (err) {
+    console.error('[DailyLog] loadDailyLog error', err);
+    dailyLog = null;
+  }
+}
+
+async function loadDailyLogVisits(activityLogId) {
+  if (!window.db || !window._fs || !activityLogId) { dailyLogVisits = []; return; }
+  try {
+    const { collection, query, where, orderBy, getDocs } = window._fs;
+    const q = query(
+      collection(window.db, 'visitLogs'),
+      where('activityLogId', '==', activityLogId),
+      orderBy('visitTime', 'asc')
+    );
+    const snap = await getDocs(q);
+    dailyLogVisits = snap.docs.map(d => d.data());
+  } catch (err) {
+    // orderBy may fail if index not yet built — fallback without ordering
+    try {
+      const { collection, query, where, getDocs } = window._fs;
+      const q2 = query(collection(window.db, 'visitLogs'), where('activityLogId', '==', activityLogId));
+      const snap2 = await getDocs(q2);
+      dailyLogVisits = snap2.docs.map(d => d.data());
+    } catch (err2) {
+      console.error('[DailyLog] loadDailyLogVisits error', err2);
+      dailyLogVisits = [];
+    }
+  }
+}
+
+async function loadDailyLogHistory() {
+  if (!window.db || !window._fs) { dailyLogHistory = []; return; }
+  try {
+    const { collection, query, orderBy, getDocs } = window._fs;
+    const q = query(collection(window.db, 'activityLogs'), orderBy('date', 'desc'));
+    const snap = await getDocs(q);
+    dailyLogHistory = snap.docs.map(d => d.data());
+  } catch (err) {
+    console.error('[DailyLog] loadDailyLogHistory error', err);
+    dailyLogHistory = [];
+  }
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+function renderDailyLog() {
+  const root = document.getElementById('dailylog-root');
+  if (!root) return;
+  root.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+      <div class="list-title" style="margin:0">Daily Activity Log</div>
+    </div>
+    <div class="dl-sub-tabs">
+      <button class="dl-sub-tab${dlView === 'plan' ? ' active' : ''}" onclick="dlSwitchView('plan')">Today's Plan</button>
+      <button class="dl-sub-tab${dlView === 'history' ? ' active' : ''}" onclick="dlSwitchView('history')">History</button>
+    </div>
+    <div id="dl-view-content"></div>`;
+  if (dlView === 'plan') {
+    renderDailyLogPlan();
+  } else {
+    renderDailyLogHistory();
+  }
+}
+
+function dlSwitchView(v) {
+  dlView = v;
+  renderDailyLog();
+}
+
+async function renderDailyLogPlan() {
+  const content = document.getElementById('dl-view-content');
+  if (!content) return;
+
+  const dateVal = dlCurrentDate || today();
+  dlCurrentDate = dateVal;
+
+  content.innerHTML = `
+    <div class="dl-toolbar">
+      <input type="date" id="dl-date-picker" value="${esc(dateVal)}" onchange="dlDateChanged(this.value)">
+      <button class="btn-save" style="font-size:13px;background:#1565c0" onclick="openAddStopModal()">+ Add Stop</button>
+      <button class="btn-icon" id="dl-optimize-btn" style="font-size:13px" onclick="optimizeRoute()" ${(!dailyLog?.stops?.length >= 2) ? 'disabled title="Add 2+ stops first"' : ''}>⚡ Optimize Route</button>
+      ${dailyLog?.optimized ? `<button class="btn-icon" style="font-size:13px;background:#e8f5e9;color:#2e7d32;border-color:#c8e6c9" onclick="openFullRoute()">🗺 Open in Google Maps</button>` : ''}
+    </div>
+    ${!getHomeAddress() ? '<div class="dl-home-warn">Set your home address in Settings for route optimization.</div>' : ''}
+    <div id="dl-stops-list"></div>
+    <div style="margin-top:12px">
+      <button class="btn-icon" style="font-size:12px" onclick="openAddStopModal(true)">+ Add Unplanned Stop</button>
+    </div>
+    <div id="dl-summary"></div>`;
+
+  if (!dailyLog) {
+    content.querySelector('#dl-stops-list').innerHTML = '<div class="dl-empty">Loading...</div>';
+    await loadDailyLog(dateVal);
+  }
+
+  renderDailyLogStops();
+  renderDailyLogSummary();
+}
+
+function renderDailyLogStops() {
+  const el = document.getElementById('dl-stops-list');
+  if (!el || !dailyLog) return;
+
+  const stops = (dailyLog.stops || []).slice().sort((a, b) => {
+    const ao = (dailyLog.optimized && a.optimizedOrder != null) ? a.optimizedOrder : (a.plannedOrder || 999);
+    const bo = (dailyLog.optimized && b.optimizedOrder != null) ? b.optimizedOrder : (b.plannedOrder || 999);
+    return ao - bo;
+  });
+
+  if (!stops.length) {
+    el.innerHTML = '<div class="dl-empty">No stops planned yet. Click "+ Add Stop" to build your route.</div>';
+    return;
+  }
+
+  el.innerHTML = stops.map((s, idx) => {
+    const order = (dailyLog.optimized && s.optimizedOrder != null) ? s.optimizedOrder : (s.plannedOrder || idx + 1);
+    const statusClass = s.status === 'completed' ? 'completed' : s.status === 'skipped' ? 'skipped' : 'planned';
+    const statusLabel = s.status === 'completed' ? 'Completed' : s.status === 'skipped' ? 'Skipped' : 'Planned';
+    const cardClass = s.isUnplanned ? 'dl-stop-card unplanned' : s.isNewLead ? 'dl-stop-card new-lead' : 'dl-stop-card';
+    const phoneHtml = s.phone ? `<a href="tel:${esc(s.phone)}" style="color:#1565c0;font-size:12px;text-decoration:none">${esc(s.phone)}</a>` : '';
+    const addrParts = [s.address, s.city, s.zip].filter(Boolean).join(', ');
+    return `<div class="${cardClass}" draggable="true" data-stop-id="${esc(s.stopId)}" style="display:flex;align-items:flex-start">
+      <div class="dl-drag-handle" title="Drag to reorder">⠿</div>
+      <div class="dl-stop-num" style="flex-shrink:0">${order}</div>
+      <div class="dl-stop-info" style="flex:1;min-width:0">
+        <div class="dl-stop-company">${esc(s.companyName || 'Unknown')}</div>
+        ${s.contactName ? `<div class="dl-stop-contact">${esc(s.contactName)}</div>` : ''}
+        ${s.note ? `<div style="font-size:12px;color:#888;margin-top:2px;font-style:italic">${esc(s.note)}</div>` : ''}
+        ${addrParts ? `<div class="dl-stop-addr">${esc(addrParts)}</div>` : ''}
+        ${phoneHtml ? `<div style="margin-top:3px">${phoneHtml}</div>` : ''}
+        <div class="dl-stop-actions">
+          <span class="dl-stop-status ${statusClass}">${statusLabel}</span>
+          ${s.status !== 'completed' ? `<button class="btn-save" style="font-size:11px;padding:4px 10px;background:#1565c0" onclick="openLogVisitModal('${esc(s.stopId)}')">Log Visit</button>` : ''}
+          <button class="btn-save" style="font-size:11px;padding:4px 10px;background:#1a3a7a" onclick="dlStartQuoteFromStop('${esc(s.stopId)}')">Start Quote →</button>
+          ${s.status === 'planned' ? `<button class="btn-icon" style="font-size:11px;padding:4px 8px" onclick="markStopSkipped('${esc(s.stopId)}')">Skip</button>` : ''}
+          <button class="btn-icon" style="font-size:11px;padding:4px 8px;color:#c62828" onclick="removeStop('${esc(s.stopId)}')">Remove</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  _initDlDragDrop(el);
+}
+
+let _dlDragSrc = null;
+
+function _initDlDragDrop(container) {
+  container.querySelectorAll('[draggable="true"][data-stop-id]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      _dlDragSrc = card;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.stopId);
+      setTimeout(() => { card.style.opacity = '0.4'; }, 0);
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '';
+      container.querySelectorAll('.dl-drag-over').forEach(c => c.classList.remove('dl-drag-over'));
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (card !== _dlDragSrc) card.classList.add('dl-drag-over');
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('dl-drag-over'));
+    card.addEventListener('drop', async e => {
+      e.preventDefault();
+      card.classList.remove('dl-drag-over');
+      if (!_dlDragSrc || _dlDragSrc === card) return;
+      await _dlReorderStop(_dlDragSrc.dataset.stopId, card.dataset.stopId);
+    });
+  });
+}
+
+async function _dlReorderStop(srcId, destId) {
+  if (!dailyLog?.stops) return;
+  const sorted = (dailyLog.stops || []).slice().sort((a, b) => {
+    const ao = (dailyLog.optimized && a.optimizedOrder != null) ? a.optimizedOrder : (a.plannedOrder || 999);
+    const bo = (dailyLog.optimized && b.optimizedOrder != null) ? b.optimizedOrder : (b.plannedOrder || 999);
+    return ao - bo;
+  });
+  const si = sorted.findIndex(s => s.stopId === srcId);
+  const di = sorted.findIndex(s => s.stopId === destId);
+  if (si < 0 || di < 0) return;
+  sorted.splice(di, 0, sorted.splice(si, 1)[0]);
+  sorted.forEach((s, i) => {
+    const orig = dailyLog.stops.find(x => x.stopId === s.stopId);
+    if (orig) { orig.plannedOrder = i + 1; orig.optimizedOrder = null; }
+  });
+  dailyLog.optimized = false;
+  dailyLog.updatedAt = new Date().toISOString();
+  await _saveDailyLog();
+  renderDailyLogStops();
+  renderDailyLogSummary();
+}
+
+function renderDailyLogSummary() {
+  const el = document.getElementById('dl-summary');
+  if (!el || !dailyLog) return;
+  const stops = dailyLog.stops || [];
+  const planned   = stops.filter(s => s.status === 'planned').length;
+  const completed = stops.filter(s => s.status === 'completed').length;
+  const skipped   = stops.filter(s => s.status === 'skipped').length;
+  const newLeads  = stops.filter(s => s.isNewLead).length;
+  if (!stops.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="dl-summary-bar">
+    <div class="dl-summary-stat"><div class="dl-summary-num">${stops.length}</div><div class="dl-summary-label">Total Stops</div></div>
+    <div class="dl-summary-stat"><div class="dl-summary-num" style="color:#2e7d32">${completed}</div><div class="dl-summary-label">Completed</div></div>
+    <div class="dl-summary-stat"><div class="dl-summary-num" style="color:#e65100">${skipped}</div><div class="dl-summary-label">Skipped</div></div>
+    <div class="dl-summary-stat"><div class="dl-summary-num" style="color:#666">${planned}</div><div class="dl-summary-label">Remaining</div></div>
+    ${newLeads > 0 ? `<div class="dl-summary-stat"><div class="dl-summary-num" style="color:#2e7d32">${newLeads}</div><div class="dl-summary-label">New Leads</div></div>` : ''}
+  </div>`;
+}
+
+async function renderDailyLogHistory() {
+  const content = document.getElementById('dl-view-content');
+  if (!content) return;
+  content.innerHTML = `
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="form-input" id="dl-history-search" type="text" placeholder="Search company..." style="flex:1;min-width:140px;max-width:240px;font-size:13px" value="${esc(dlHistorySearch)}" oninput="dlHistorySearchChanged(this.value)">
+      <label style="font-size:12px;color:#666;white-space:nowrap">From:</label>
+      <input class="form-input" id="dl-hist-from" type="date" style="font-size:13px;width:140px" value="${esc(dlHistoryFrom)}" onchange="dlHistoryRangeChanged('from',this.value)">
+      <label style="font-size:12px;color:#666;white-space:nowrap">To:</label>
+      <input class="form-input" id="dl-hist-to" type="date" style="font-size:13px;width:140px" value="${esc(dlHistoryTo)}" onchange="dlHistoryRangeChanged('to',this.value)">
+      ${dlHistoryFrom || dlHistoryTo ? `<button class="btn-icon" style="font-size:12px" onclick="dlHistoryClearRange()">Clear</button>` : ''}
+    </div>
+    <div id="dl-history-list"><div class="dl-empty">Loading history...</div></div>`;
+
+  await loadDailyLogHistory();
+  _renderDailyLogHistoryList();
+}
+
+function dlHistorySearchChanged(v) { dlHistorySearch = v; _renderDailyLogHistoryList(); }
+function dlHistoryRangeChanged(which, v) { if (which === 'from') dlHistoryFrom = v; else dlHistoryTo = v; _renderDailyLogHistoryList(); }
+function dlHistoryClearRange() { dlHistoryFrom = ''; dlHistoryTo = ''; renderDailyLogHistory(); }
+
+function _renderDailyLogHistoryList() {
+  const el = document.getElementById('dl-history-list');
+  if (!el) return;
+  let rows = dailyLogHistory;
+  if (dlHistorySearch) {
+    const q = dlHistorySearch.toLowerCase();
+    rows = rows.filter(log => (log.stops || []).some(s => (s.companyName || '').toLowerCase().includes(q)));
+  }
+  if (dlHistoryFrom) rows = rows.filter(log => log.date >= dlHistoryFrom);
+  if (dlHistoryTo)   rows = rows.filter(log => log.date <= dlHistoryTo);
+  if (!rows.length) { el.innerHTML = '<div class="dl-empty">No history found.</div>'; return; }
+  el.innerHTML = rows.map(log => {
+    const stops = log.stops || [];
+    const completed = stops.filter(s => s.status === 'completed').length;
+    const newLeads  = stops.filter(s => s.isNewLead).length;
+    const isOpen = dlHistoryDate === log.id;
+    let detailHtml = '';
+    if (isOpen) {
+      const visits = (window._dlHistoryVisits || {})[log.id] || [];
+      detailHtml = `<div class="dl-history-detail">
+        ${stops.length === 0 ? '<div style="color:#aaa;font-size:13px">No stops recorded.</div>' : stops.map(s => {
+          const vis = visits.find(v => v.stopId === s.stopId);
+          const profileBtn = s.contactId
+            ? `<button class="btn-icon" style="font-size:10px;padding:2px 6px;margin-left:4px" onclick="event.stopPropagation();openLeadProfile('${esc(s.contactId)}')">View Profile</button>`
+            : '';
+          return `<div class="dl-history-stop-row">
+            <span class="dl-stop-status ${s.status === 'completed' ? 'completed' : s.status === 'skipped' ? 'skipped' : 'planned'}" style="font-size:10px">${s.status}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${esc(s.companyName || '')}${profileBtn}</div>
+              ${vis?.visitTime ? `<div style="font-size:11px;color:#888">Visit time: ${esc(vis.visitTime)}</div>` : ''}
+              ${vis?.outcome   ? `<div style="font-size:12px;color:#555">${esc(vis.outcome)}</div>` : ''}
+              ${vis?.notes     ? `<div style="font-size:12px;color:#888;font-style:italic">${esc(vis.notes)}</div>` : ''}
+              ${s.note         ? `<div style="font-size:12px;color:#aaa">${esc(s.note)}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+    return `<div class="dl-history-row" onclick="dlToggleHistory('${esc(log.id)}')">
+      <div class="dl-history-row-header">
+        <div class="dl-history-date">${formatDate(log.date)}</div>
+        <div class="dl-history-stats">
+          <span>${stops.length} stop${stops.length !== 1 ? 's' : ''}</span>
+          <span style="color:#2e7d32">${completed} completed</span>
+          ${newLeads > 0 ? `<span style="color:#2e7d32">${newLeads} new lead${newLeads !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <span style="color:#aaa;font-size:12px">${isOpen ? '▼' : '▶'}</span>
+      </div>
+      ${detailHtml}
+    </div>`;
+  }).join('');
+}
+
+async function dlToggleHistory(logId) {
+  if (dlHistoryDate === logId) {
+    dlHistoryDate = null;
+  } else {
+    dlHistoryDate = logId;
+    // Load visits for this log if not cached
+    if (!window._dlHistoryVisits) window._dlHistoryVisits = {};
+    if (!window._dlHistoryVisits[logId] && window.db && window._fs) {
+      try {
+        const { collection, query, where, getDocs } = window._fs;
+        const q = query(collection(window.db, 'visitLogs'), where('activityLogId', '==', logId));
+        const snap = await getDocs(q);
+        window._dlHistoryVisits[logId] = snap.docs.map(d => d.data());
+      } catch (e) {
+        window._dlHistoryVisits[logId] = [];
+      }
+    }
+  }
+  _renderDailyLogHistoryList();
+}
+
+async function dlDateChanged(val) {
+  dlCurrentDate = val;
+  dailyLog = null;
+  dailyLogVisits = [];
+  await renderDailyLogPlan();
+}
+
+// ── Stop management ───────────────────────────────────────────────────────────
+function openAddStopModal(isUnplanned) {
+  const existing = document.getElementById('overlay-dl-add-stop');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay-dl-add-stop';
+  overlay.className = 'modal-overlay open';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:500px;width:95%;background:#fff;border-radius:10px;padding:24px;max-height:90vh;overflow-y:auto">
+      <div class="modal-title" style="font-size:17px;font-weight:700;margin-bottom:14px">${isUnplanned ? 'Add Unplanned Stop' : 'Add Stop'}</div>
+      <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+        <button id="dl-stype-existing" onclick="dlSwitchStopType('existing')" style="flex:1;padding:9px 4px;border:none;border-right:1px solid #ddd;background:#cc0000;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Existing Contact</button>
+        <button id="dl-stype-new" onclick="dlSwitchStopType('new')" style="flex:1;padding:9px 4px;border:none;border-right:1px solid #ddd;background:#f5f5f5;color:#555;font-size:12px;font-weight:600;cursor:pointer">New Prospect</button>
+        <button id="dl-stype-address" onclick="dlSwitchStopType('address')" style="flex:1;padding:9px 4px;border:none;background:#f5f5f5;color:#555;font-size:12px;font-weight:600;cursor:pointer">Address Only</button>
+      </div>
+      <div id="dl-stop-section-existing">
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Search Contact / Lead</label>
+        <input class="form-input" id="dl-stop-lead-search" type="text" placeholder="Type company, contact name, or phone…" style="width:100%;box-sizing:border-box" autocomplete="off">
+        <input type="hidden" id="dl-stop-lead-id">
+        <div id="dl-stop-selected-info" style="display:none;background:#f5f5f5;border-radius:6px;padding:10px;margin-top:8px;font-size:13px;color:#555"></div>
+      </div>
+      <div id="dl-stop-section-new" style="display:none">
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Company Name <span style="color:#cc0000">*</span></label>
+          <input class="form-input" id="dl-new-company" type="text" placeholder="Company name" style="width:100%">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">First Name</label>
+            <input class="form-input" id="dl-new-first" type="text" placeholder="First name" style="width:100%">
+          </div>
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Last Name</label>
+            <input class="form-input" id="dl-new-last" type="text" placeholder="Last name" style="width:100%">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Phone</label>
+            <input class="form-input" id="dl-new-phone" type="tel" placeholder="Phone" style="width:100%">
+          </div>
+          <div style="flex:1">
+            <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Email</label>
+            <input class="form-input" id="dl-new-email" type="email" placeholder="Email" style="width:100%">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Address</label>
+          <input class="form-input" id="dl-new-address" type="text" placeholder="Street address" style="width:100%">
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="dl-new-city" type="text" placeholder="City" style="flex:1">
+          <input class="form-input" id="dl-new-state" type="text" placeholder="State" value="GA" style="width:55px">
+          <input class="form-input" id="dl-new-zip" type="text" placeholder="Zip" style="width:80px">
+        </div>
+      </div>
+      <div id="dl-stop-section-address" style="display:none">
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Address <span style="color:#cc0000">*</span></label>
+          <input class="form-input" id="dl-addr-street" type="text" placeholder="Street address" style="width:100%">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input class="form-input" id="dl-addr-city" type="text" placeholder="City" style="flex:1">
+          <input class="form-input" id="dl-addr-state" type="text" placeholder="State" value="GA" style="width:55px">
+          <input class="form-input" id="dl-addr-zip" type="text" placeholder="Zip" style="width:80px">
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Location Name <span style="font-weight:400;color:#999">(optional — defaults to address)</span></label>
+          <input class="form-input" id="dl-addr-company" type="text" placeholder="e.g. Industrial Park, Building 3" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px">Note <span style="font-weight:400;color:#999">(optional)</span></label>
+          <input class="form-input" id="dl-addr-note" type="text" placeholder="e.g. Prospect this area" style="width:100%">
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-cancel" onclick="document.getElementById('overlay-dl-add-stop').remove()">Cancel</button>
+        <button class="btn-save" onclick="dlConfirmAddStop(${isUnplanned ? 'true' : 'false'})">Add Stop</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  setTimeout(() => {
+    _dlWireExistingContactSearch('dl-stop-lead-search');
+    _dlWireCompanyAutocomplete('dl-new-company');
+    _dlWireAddressAutocomplete('dl-new-address');
+    _dlWireAddressAutocomplete('dl-addr-street');
+  }, 50);
+}
+
+function _dlWireCompanyAutocomplete(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const wrap = input.closest('[style]') || input.parentElement;
+  wrap.style.position = 'relative';
+  const ac = document.createElement('div');
+  ac.style.cssText = 'position:absolute;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;width:100%;top:100%;left:0;margin-top:2px';
+  ac.style.display = 'none';
+  wrap.appendChild(ac);
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 2) { ac.style.display = 'none'; return; }
+    const matches = (appState.leads || []).filter(l => (l.companyName || '').toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) { ac.style.display = 'none'; return; }
+    ac.innerHTML = matches.map(l => `<div class="dl-ac-row" data-id="${esc(l.id)}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f5f5"><div style="font-weight:600">${esc(l.companyName)}</div>${l.phone ? `<div style="font-size:11px;color:#888">${esc(l.phone)}</div>` : ''}</div>`).join('');
+    ac.style.display = 'block';
+    ac.querySelectorAll('.dl-ac-row').forEach(row => {
+      row.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const lead = (appState.leads || []).find(l => l.id === row.dataset.id);
+        if (!lead) return;
+        const f = id => document.getElementById(id);
+        if (f('dl-new-company'))  f('dl-new-company').value  = lead.companyName || '';
+        if (f('dl-new-first'))    f('dl-new-first').value    = lead.firstName   || '';
+        if (f('dl-new-last'))     f('dl-new-last').value     = lead.lastName    || '';
+        if (f('dl-new-phone'))    f('dl-new-phone').value    = lead.phone       || '';
+        if (f('dl-new-email'))    f('dl-new-email').value    = lead.email       || '';
+        if (f('dl-new-address'))  f('dl-new-address').value  = lead.street      || '';
+        if (f('dl-new-city'))     f('dl-new-city').value     = lead.city        || '';
+        if (f('dl-new-state'))    f('dl-new-state').value    = lead.state       || 'GA';
+        if (f('dl-new-zip'))      f('dl-new-zip').value      = lead.zip         || '';
+        ac.style.display = 'none';
+      });
+      row.addEventListener('mouseover', () => { row.style.background = '#f5f5f5'; });
+      row.addEventListener('mouseout',  () => { row.style.background = ''; });
+    });
+  });
+  input.addEventListener('blur', () => setTimeout(() => { ac.style.display = 'none'; }, 150));
+}
+
+async function _dlWireAddressAutocomplete(inputId) {
+  const input = document.getElementById(inputId);
+  const apiKey = lgCfg().mapsApiKey;
+  if (!input || !apiKey || !window.aflAPI?.lgPlacesAutocomplete) return;
+  const wrap = input.closest('[style]') || input.parentElement;
+  wrap.style.position = 'relative';
+  const ac = document.createElement('div');
+  ac.style.cssText = 'position:absolute;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;width:100%;top:100%;left:0;margin-top:2px';
+  ac.style.display = 'none';
+  wrap.appendChild(ac);
+  let debounce = null;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    const q = input.value.trim();
+    if (q.length < 3) { ac.style.display = 'none'; return; }
+    debounce = setTimeout(async () => {
+      const res = await window.aflAPI.lgPlacesAutocomplete({ input: q, apiKey });
+      if (!res.ok || !res.predictions?.length) { ac.style.display = 'none'; return; }
+      ac.innerHTML = res.predictions.map(p => `<div class="dl-ac-row" data-desc="${esc(p.description)}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f5f5f5">${esc(p.description)}</div>`).join('');
+      ac.style.display = 'block';
+      ac.querySelectorAll('.dl-ac-row').forEach(row => {
+        row.addEventListener('mousedown', e => { e.preventDefault(); input.value = row.dataset.desc; ac.style.display = 'none'; });
+        row.addEventListener('mouseover', () => { row.style.background = '#f5f5f5'; });
+        row.addEventListener('mouseout',  () => { row.style.background = ''; });
+      });
+    }, 300);
+  });
+  input.addEventListener('blur', () => setTimeout(() => { ac.style.display = 'none'; }, 150));
+}
+
+function dlSwitchStopType(type) {
+  ['existing', 'new', 'address'].forEach(t => {
+    const btn = document.getElementById(`dl-stype-${t}`);
+    const sec = document.getElementById(`dl-stop-section-${t}`);
+    const active = t === type;
+    if (btn) { btn.style.background = active ? '#cc0000' : '#f5f5f5'; btn.style.color = active ? '#fff' : '#555'; }
+    if (sec) sec.style.display = active ? '' : 'none';
+  });
+}
+
+function _dlWireExistingContactSearch(inputId) {
+  const input  = document.getElementById(inputId);
+  const hidden = document.getElementById('dl-stop-lead-id');
+  const infoBox = document.getElementById('dl-stop-selected-info');
+  if (!input) return;
+  let dropdown = null;
+
+  const showInfo = lead => {
+    if (!infoBox) return;
+    if (!lead) { infoBox.style.display = 'none'; return; }
+    const addr = [lead.street, lead.city, lead.zip].filter(Boolean).join(', ');
+    const contact = lead.contactName || [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+    infoBox.style.display = 'block';
+    infoBox.innerHTML = `<b>${esc(lead.companyName)}</b>${contact ? '<br>' + esc(contact) : ''}${lead.phone ? '<br>' + esc(lead.phone) : ''}${addr ? '<br>' + esc(addr) : ''}`;
+  };
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (hidden) hidden.value = '';
+    showInfo(null);
+    if (dropdown) { dropdown.remove(); dropdown = null; }
+    if (q.length < 2) return;
+    const matches = (appState.leads || []).filter(l => {
+      return [l.companyName, l.firstName, l.lastName, l.contactName, l.phone].join(' ').toLowerCase().includes(q);
+    }).slice(0, 10);
+    if (!matches.length) return;
+    dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position:absolute;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;width:100%;top:100%;left:0';
+    const wrap = input.parentElement;
+    if (wrap.style.position !== 'relative') wrap.style.position = 'relative';
+    wrap.appendChild(dropdown);
+    matches.forEach(lead => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0';
+      item.addEventListener('mouseover', () => item.style.background = '#f5f5f5');
+      item.addEventListener('mouseout',  () => item.style.background = '');
+      const contact = lead.contactName || [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+      const addr = [lead.street, lead.city].filter(Boolean).join(', ');
+      item.innerHTML = `<div style="font-weight:600">${esc(lead.companyName || '')}</div>${contact ? `<div style="color:#666;font-size:12px">${esc(contact)}${lead.phone ? ' · ' + esc(lead.phone) : ''}</div>` : ''}${addr ? `<div style="color:#999;font-size:11px">${esc(addr)}</div>` : ''}`;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = lead.companyName || '';
+        if (hidden) hidden.value = lead.id;
+        showInfo(lead);
+        dropdown.remove(); dropdown = null;
+      });
+      dropdown.appendChild(item);
+    });
+    setTimeout(() => document.addEventListener('click', function h() {
+      if (dropdown) { dropdown.remove(); dropdown = null; }
+      document.removeEventListener('click', h);
+    }), 0);
+  });
+}
+
+async function dlConfirmAddStop(isUnplanned) {
+  const activeSection = ['existing', 'new', 'address'].find(t => document.getElementById(`dl-stop-section-${t}`)?.style.display !== 'none') || 'existing';
+  let contactId = '', companyName = '', contactName = '', firstName = '', lastName = '', phone = '', email = '', address = '', city = '', state = '', zip = '', note = '', isNewLead = false, isAddressOnly = false;
+
+  if (activeSection === 'existing') {
+    const leadId = document.getElementById('dl-stop-lead-id')?.value || '';
+    if (!leadId) { toast('Select a contact from the search results', 'warn'); return; }
+    const lead = appState.leads.find(l => l.id === leadId);
+    if (!lead) { toast('Contact not found', 'warn'); return; }
+    contactId   = leadId;
+    companyName = lead.companyName || '';
+    contactName = lead.contactName || [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+    phone       = lead.phone   || '';
+    email       = lead.email   || '';
+    address     = lead.street  || '';
+    city        = lead.city    || '';
+    state       = lead.state   || '';
+    zip         = lead.zip     || '';
+
+  } else if (activeSection === 'new') {
+    companyName = (document.getElementById('dl-new-company')?.value || '').trim();
+    if (!companyName) { toast('Company name is required', 'warn'); return; }
+    firstName   = (document.getElementById('dl-new-first')?.value   || '').trim();
+    lastName    = (document.getElementById('dl-new-last')?.value    || '').trim();
+    contactName = [firstName, lastName].filter(Boolean).join(' ');
+    phone       = (document.getElementById('dl-new-phone')?.value   || '').trim();
+    email       = (document.getElementById('dl-new-email')?.value   || '').trim();
+    address     = (document.getElementById('dl-new-address')?.value || '').trim();
+    city        = (document.getElementById('dl-new-city')?.value    || '').trim();
+    state       = (document.getElementById('dl-new-state')?.value   || 'GA').trim();
+    zip         = (document.getElementById('dl-new-zip')?.value     || '').trim();
+    isNewLead   = true;
+    contactId   = await createLeadFromStop({ companyName, firstName, lastName, contactName, phone, email, address, city, state, zip });
+
+  } else {
+    address = (document.getElementById('dl-addr-street')?.value  || '').trim();
+    if (!address) { toast('Address is required', 'warn'); return; }
+    city    = (document.getElementById('dl-addr-city')?.value    || '').trim();
+    state   = (document.getElementById('dl-addr-state')?.value   || 'GA').trim();
+    zip     = (document.getElementById('dl-addr-zip')?.value     || '').trim();
+    const nameOverride = (document.getElementById('dl-addr-company')?.value || '').trim();
+    companyName   = nameOverride || [address, city].filter(Boolean).join(', ');
+    note          = (document.getElementById('dl-addr-note')?.value || '').trim();
+    isAddressOnly = true;
+  }
+
+  document.getElementById('overlay-dl-add-stop')?.remove();
+  await addStopToLog(contactId, companyName, contactName, phone, address, city, state, zip, !!isUnplanned, isNewLead, isAddressOnly, note);
+}
+
+async function addStopToLog(contactId, companyName, contactName, phone, address, city, state, zip, isUnplanned, isNewLead, isAddressOnly, note) {
+  if (!dailyLog) { toast('No daily log loaded', 'error'); return; }
+  const stopId = genId('s');
+  const plannedOrder = (dailyLog.stops || []).length + 1;
+  const stop = { stopId, contactId, companyName, contactName, phone, address, city, state: state || '', zip, note: note || '', plannedOrder, optimizedOrder: null, status: 'planned', isUnplanned: !!isUnplanned, isNewLead: !!isNewLead, isAddressOnly: !!isAddressOnly };
+  if (!dailyLog.stops) dailyLog.stops = [];
+  dailyLog.stops.push(stop);
+  dailyLog.updatedAt = new Date().toISOString();
+  await _saveDailyLog();
+  renderDailyLogStops();
+  renderDailyLogSummary();
+  toast('Stop added');
+}
+
+function dlStartQuoteFromStop(stopId) {
+  const stop = (dailyLog?.stops || []).find(s => s.stopId === stopId);
+  if (!stop) return;
+  if (stop.contactId) {
+    startQuoteFromLead(stop.contactId);
+    return;
+  }
+  // Address-only or unmatched — try to find by company name, else open quote modal pre-typed
+  const lead = (appState.leads || []).find(l => l.companyName === stop.companyName);
+  if (lead) { startQuoteFromLead(lead.id); return; }
+  // No linked contact — open quote modal and pre-type company name in picker
+  document.getElementById('overlay-lead-profile')?.classList.remove('open');
+  document.getElementById('overlay-lead')?.classList.remove('open');
+  openQuoteModal();
+  setTimeout(() => {
+    const picker = document.getElementById('q-cust-picker');
+    if (picker) { picker.value = stop.companyName || ''; picker.dispatchEvent(new Event('input')); }
+  }, 150);
+}
+
+async function removeStop(stopId) {
+  if (!dailyLog) return;
+  dailyLog.stops = (dailyLog.stops || []).filter(s => s.stopId !== stopId);
+  dailyLog.updatedAt = new Date().toISOString();
+  await _saveDailyLog();
+  renderDailyLogStops();
+  renderDailyLogSummary();
+  toast('Stop removed');
+}
+
+async function markStopSkipped(stopId) {
+  if (!dailyLog) return;
+  const stop = (dailyLog.stops || []).find(s => s.stopId === stopId);
+  if (!stop) return;
+  stop.status = 'skipped';
+  dailyLog.updatedAt = new Date().toISOString();
+  await _saveDailyLog();
+  renderDailyLogStops();
+  renderDailyLogSummary();
+  toast('Stop marked as skipped');
+}
+
+async function _saveDailyLog() {
+  if (!dailyLog || !window.db || !window._fs) return;
+  try {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(window.db, 'activityLogs', dailyLog.id), dailyLog);
+  } catch (err) {
+    console.error('[DailyLog] save error', err);
+    toast('Failed to save daily log', 'error');
+  }
+}
+
+// ── Add to Daily Log from Fleet Search ────────────────────────────────────────
+let _fsDlPromptEl = null;
+
+function _closeFsDlPrompt() {
+  if (_fsDlPromptEl) { _fsDlPromptEl.remove(); _fsDlPromptEl = null; }
+}
+
+function _showDlFeedback(el, msg, type) {
+  if (!el) { toast(msg, type === 'success' ? 'success' : 'warn'); return; }
+  el.textContent = msg;
+  el.className = 'fs-dl-feedback ' + (type === 'success' ? 'success' : 'warn');
+  el.style.display = 'block';
+}
+
+function showAddToDailyLogPrompt(leadId, anchorBtn, feedbackElId) {
+  _closeFsDlPrompt();
+  const prompt = document.createElement('div');
+  prompt.className = 'fs-dl-prompt';
+  prompt.innerHTML = `
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Add to Daily Log</div>
+    <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Select date:</label>
+    <input type="date" class="fs-dl-prompt-date" value="${tomorrow()}" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;box-sizing:border-box;margin-bottom:10px">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-cancel fs-dl-prompt-cancel" style="font-size:12px;padding:5px 12px">Cancel</button>
+      <button class="btn-save fs-dl-prompt-confirm" style="font-size:12px;padding:5px 12px;background:#2e7d32">Add Stop</button>
+    </div>`;
+
+  const wrapper = anchorBtn ? anchorBtn.parentElement : null;
+  if (wrapper) {
+    wrapper.style.position = 'relative';
+    wrapper.appendChild(prompt);
+  } else {
+    prompt.style.position = 'fixed';
+    prompt.style.top = '50%';
+    prompt.style.left = '50%';
+    prompt.style.transform = 'translate(-50%, -50%)';
+    document.body.appendChild(prompt);
+  }
+  _fsDlPromptEl = prompt;
+
+  prompt.querySelector('.fs-dl-prompt-cancel').onclick = _closeFsDlPrompt;
+  prompt.querySelector('.fs-dl-prompt-confirm').onclick = async () => {
+    const date = prompt.querySelector('.fs-dl-prompt-date').value;
+    if (!date) { toast('Please select a date', 'warn'); return; }
+    _closeFsDlPrompt();
+    const feedbackEl = feedbackElId ? document.getElementById(feedbackElId) : null;
+    await addContactToDailyLog(leadId, date, feedbackEl);
+  };
+}
+
+async function _loadActivityLogForDate(date) {
+  await window._firebaseReadyPromise;
+  const { collection, query, where, getDocs, doc, setDoc } = window._fs;
+  const q = query(collection(window.db, 'activityLogs'), where('date', '==', date));
+  const snap = await getDocs(q);
+  if (!snap.empty) return snap.docs[0].data();
+  const now = new Date().toISOString();
+  const id = genId('al');
+  const log = { id, date, stops: [], optimized: false, createdAt: now, updatedAt: now };
+  await setDoc(doc(window.db, 'activityLogs', id), log);
+  return log;
+}
+
+async function addContactToDailyLog(leadId, date, feedbackEl) {
+  const l = appState.leads.find(x => x.id === leadId);
+  if (!l) return;
+  if (!window.db || !window._fs) { toast('Firebase not connected', 'error'); return; }
+
+  try {
+    const log = await _loadActivityLogForDate(date);
+
+    const duplicate = (log.stops || []).find(s => s.contactId === leadId);
+    if (duplicate) {
+      _showDlFeedback(feedbackEl, `Already in Daily Log for ${formatDate(date)}`, 'warn');
+      return;
+    }
+
+    const contactName = [l.firstName, l.lastName].filter(Boolean).join(' ') || l.contactName || '';
+    const stopId = genId('s');
+    const plannedOrder = (log.stops || []).length + 1;
+    const stop = {
+      stopId, contactId: leadId,
+      companyName: l.companyName || '',
+      contactName, phone: l.phone || '',
+      address: l.street || '', city: l.city || '',
+      state: l.state || '', zip: l.zip || '',
+      note: '', plannedOrder, optimizedOrder: null,
+      status: 'planned', isUnplanned: false, isNewLead: false, isAddressOnly: false,
+    };
+
+    if (!log.stops) log.stops = [];
+    log.stops.push(stop);
+    log.updatedAt = new Date().toISOString();
+
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(window.db, 'activityLogs', log.id), log);
+
+    if (dailyLog && dailyLog.date === date) {
+      dailyLog = log;
+      renderDailyLogStops();
+      renderDailyLogSummary();
+    }
+
+    _showDlFeedback(feedbackEl, `Added to Daily Log for ${formatDate(date)}`, 'success');
+  } catch (err) {
+    console.error('[DailyLog] addContactToDailyLog error', err);
+    toast('Failed to add to Daily Log', 'error');
+  }
+}
+
+function fsAddToDailyLogFromList(leadId, btn) {
+  showAddToDailyLogPrompt(leadId, btn, `fs-dl-feedback-${leadId}`);
+}
+
+function fsAddToDailyLogFromProfile() {
+  if (!viewingLeadId) return;
+  const btn = document.getElementById('add-to-daily-log-from-lead-btn');
+  showAddToDailyLogPrompt(viewingLeadId, btn, 'lead-dl-feedback');
+}
+
+// ── New lead creation ─────────────────────────────────────────────────────────
+async function createLeadFromStop(data) {
+  const now = new Date().toISOString();
+  const id = genId('l');
+  const newLead = {
+    id,
+    companyName: data.companyName,
+    contactName: data.contactName || [data.firstName, data.lastName].filter(Boolean).join(' '),
+    firstName: data.firstName || '', lastName: data.lastName || '',
+    phone: data.phone || '', email: data.email || '',
+    street: data.address || '', city: data.city || '',
+    state: data.state || '', zip: data.zip || '',
+    sc2FirstName: '', sc2LastName: '', sc2Title: '', sc2Phone: '', sc2Email: '',
+    leadSource: 'daily_log', status: 'prospect',
+    statusHistory: [], activityLog: [],
+    lastActivityDate: now.slice(0, 10),
+    createdAt: now, updatedAt: now,
+  };
+  if (!appState.leads) appState.leads = [];
+  appState.leads.push(newLead);
+  await saveData();
+  return id;
+}
+
+// ── Route optimization ────────────────────────────────────────────────────────
+async function optimizeRoute() {
+  if (!dailyLog?.stops?.length) { toast('No stops to optimize', 'warn'); return; }
+  const homeAddr = getHomeAddress();
+  if (!homeAddr) { toast('Set your home address in Settings → Daily Log', 'warn'); return; }
+  const apiKey = lgCfg().mapsApiKey;
+
+  toast('Optimizing route...');
+  const stops = dailyLog.stops.filter(s => s.status !== 'skipped');
+  if (stops.length < 2) { toast('Need at least 2 non-skipped stops to optimize', 'warn'); return; }
+
+  const addrOf = s => [s.address, s.city, s.state, s.zip].filter(Boolean).join(', ') || s.companyName || '';
+  const stopAddrs = stops.map(addrOf);
+
+  let ordered = null;
+  let method = 'as-entered';
+
+  if (apiKey) {
+    try {
+      ordered = await _dlOptimizeDistMatrix(homeAddr, stops, stopAddrs, apiKey);
+      method = 'distance-matrix';
+    } catch (e) {
+      console.warn('[DailyLog] Distance Matrix failed:', e.message);
+    }
+    if (!ordered) {
+      try {
+        ordered = await _dlOptimizeGeocode(homeAddr, stops, stopAddrs, apiKey);
+        method = 'geocode';
+      } catch (e) {
+        console.warn('[DailyLog] Geocoding fallback failed:', e.message);
+      }
+    }
+  }
+
+  if (!ordered) { ordered = stops.map((_, i) => i); }
+
+  ordered.forEach((origIdx, orderIdx) => {
+    const s = dailyLog.stops.find(x => x.stopId === stops[origIdx].stopId);
+    if (s) s.optimizedOrder = orderIdx + 1;
+  });
+  dailyLog.stops.filter(s => s.status === 'skipped').forEach((s, i) => { s.optimizedOrder = 900 + i; });
+  dailyLog.optimized = true;
+  dailyLog.updatedAt = new Date().toISOString();
+  await _saveDailyLog();
+  renderDailyLogPlan();
+
+  if (method === 'distance-matrix') toast('Route optimized!', 'success');
+  else if (method === 'geocode') toast('Route sorted by straight-line distance — enable Distance Matrix API in Google Cloud for full optimization', 'warn');
+  else toast('Route order kept as entered — add a Maps API key in Settings to enable optimization', 'warn');
+}
+
+async function _dlOptimizeDistMatrix(homeAddr, stops, stopAddrs, apiKey) {
+  const unvisited = stops.map((_, i) => i);
+  const ordered = [];
+  let currentAddr = homeAddr;
+  while (unvisited.length > 0) {
+    const destinations = unvisited.map(i => stopAddrs[i]);
+    console.log('[DailyLog] Distance Matrix →', { origin: currentAddr, destinations: destinations.length + ' stops' });
+    const data = await window.aflAPI.lgDistanceMatrix({ origins: currentAddr, destinations, apiKey });
+    console.log('[DailyLog] Distance Matrix ←', data.status, data.error_message || '');
+    if (data.status !== 'OK') throw new Error(data.status + (data.error_message ? ': ' + data.error_message : ''));
+    const elems = data.rows[0]?.elements || [];
+    let bestIdx = 0, bestDist = Infinity;
+    elems.forEach((el, i) => {
+      if (el.status === 'OK' && el.distance.value < bestDist) { bestDist = el.distance.value; bestIdx = i; }
+    });
+    const chosen = unvisited[bestIdx];
+    ordered.push(chosen);
+    currentAddr = stopAddrs[chosen] || currentAddr;
+    unvisited.splice(bestIdx, 1);
+  }
+  return ordered;
+}
+
+async function _dlOptimizeGeocode(homeAddr, stops, stopAddrs, apiKey) {
+  const gc = async (addr) => {
+    const r = await window.aflAPI.lgGeocodeAddress({ address: addr, apiKey });
+    if (!r.ok) throw new Error(r.error);
+    return { lat: r.lat, lng: r.lng };
+  };
+  const hav = (a, b) => {
+    const R = 3959, toR = d => d * Math.PI / 180;
+    const dLat = toR(b.lat - a.lat), dLng = toR(b.lng - a.lng);
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a.lat)) * Math.cos(toR(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  };
+  const homePt = await gc(homeAddr);
+  const pts = await Promise.all(stopAddrs.map(a => gc(a).catch(() => null)));
+  const unvisited = stops.map((_, i) => i);
+  const ordered = [];
+  let cur = homePt;
+  while (unvisited.length > 0) {
+    let bestUi = 0, bestDist = Infinity;
+    unvisited.forEach((i, ui) => {
+      if (!pts[i]) return;
+      const d = hav(cur, pts[i]);
+      if (d < bestDist) { bestDist = d; bestUi = ui; }
+    });
+    const chosen = unvisited[bestUi];
+    ordered.push(chosen);
+    cur = pts[chosen] || cur;
+    unvisited.splice(bestUi, 1);
+  }
+  return ordered;
+}
+
+function buildGoogleMapsRouteUrl(stops) {
+  const home = getHomeAddress();
+  const active = (stops || []).filter(s => s.status !== 'skipped');
+  if (!active.length) return '';
+  const sorted = active.slice().sort((a, b) => {
+    const ao = (dailyLog?.optimized && a.optimizedOrder != null) ? a.optimizedOrder : (a.plannedOrder || 999);
+    const bo = (dailyLog?.optimized && b.optimizedOrder != null) ? b.optimizedOrder : (b.plannedOrder || 999);
+    return ao - bo;
+  });
+  const addrOf = s => [s.address, s.city, s.state, s.zip].filter(Boolean).join(', ');
+  const last = sorted[sorted.length - 1];
+  const destAddr = addrOf(last);
+  const waypoints = sorted.slice(0, -1).map(s => encodeURIComponent(addrOf(s))).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(home)}&destination=${encodeURIComponent(destAddr)}&travelmode=driving`;
+  if (waypoints) url += `&waypoints=${waypoints}`;
+  return url;
+}
+
+function openFullRoute() {
+  if (!dailyLog?.stops) return;
+  const url = buildGoogleMapsRouteUrl(dailyLog.stops);
+  if (!url) { toast('No stops to route', 'warn'); return; }
+  window.aflAPI.openExternal(url);
+}
+
+// ── Visit logging ─────────────────────────────────────────────────────────────
+function openLogVisitModal(stopId) {
+  if (!dailyLog) return;
+  const stop = (dailyLog.stops || []).find(s => s.stopId === stopId);
+  if (!stop) return;
+
+  const existing = document.getElementById('overlay-dl-log-visit');
+  if (existing) existing.remove();
+
+  const now = new Date();
+  const timeVal = now.toTimeString().slice(0, 5);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay-dl-log-visit';
+  overlay.className = 'modal-overlay open';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:480px;width:95%;background:#fff;border-radius:10px;padding:24px;max-height:90vh;overflow-y:auto">
+      <div class="modal-title" style="font-size:17px;font-weight:700;margin-bottom:4px">Log Visit</div>
+      <div style="font-size:14px;color:#555;margin-bottom:16px">${esc(stop.companyName || '')}</div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Visit Time</label>
+        <input class="form-input" id="dl-visit-time" type="time" value="${timeVal}" style="width:140px">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Outcome *</label>
+        <select class="form-select" id="dl-visit-outcome" style="width:100%">
+          <option value="">-- Select outcome --</option>
+          <option value="Met in person">Met in person</option>
+          <option value="Left card / brochure">Left card / brochure</option>
+          <option value="Demo presented">Demo presented</option>
+          <option value="Quote discussed">Quote discussed</option>
+          <option value="Not interested">Not interested</option>
+          <option value="No contact — left materials">No contact — left materials</option>
+          <option value="Follow-up scheduled">Follow-up scheduled</option>
+          <option value="Closed deal">Closed deal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Notes</label>
+        <textarea id="dl-visit-notes" rows="3" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:13px;resize:vertical;box-sizing:border-box" placeholder="What happened? Key points from conversation..."></textarea>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Next Action</label>
+        <select class="form-select" id="dl-visit-next-action" style="width:100%">
+          <option value="">None</option>
+          <option value="add-task">Add follow-up task</option>
+          <option value="schedule-followup">Schedule follow-up visit</option>
+        </select>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-cancel" onclick="document.getElementById('overlay-dl-log-visit').remove()">Cancel</button>
+        <button class="btn-save" onclick="saveVisitLog('${esc(stopId)}')">Save Visit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function saveVisitLog(stopId) {
+  if (!dailyLog) return;
+  const stop = (dailyLog.stops || []).find(s => s.stopId === stopId);
+  if (!stop) return;
+  const outcome    = (document.getElementById('dl-visit-outcome')?.value    || '').trim();
+  const notes      = (document.getElementById('dl-visit-notes')?.value      || '').trim();
+  const nextAction = (document.getElementById('dl-visit-next-action')?.value || '');
+  const visitTime  = (document.getElementById('dl-visit-time')?.value        || '');
+
+  if (!outcome) { toast('Select an outcome', 'warn'); return; }
+
+  const now = new Date().toISOString();
+  const visitId = genId('vl');
+  const visitLog = {
+    visitId, activityLogId: dailyLog.id,
+    contactId: stop.contactId, companyName: stop.companyName,
+    contactName: stop.contactName, phone: stop.phone, email: '',
+    address: stop.address, city: stop.city, zip: stop.zip,
+    plannedOrder: stop.plannedOrder, optimizedOrder: stop.optimizedOrder,
+    status: 'completed', outcome, notes, nextAction,
+    visitDate: dailyLog.date, visitTime, stopId,
+    createdAt: now, isUnplanned: stop.isUnplanned, isNewLead: stop.isNewLead,
+  };
+
+  // Save visitLog to Firestore
+  if (window.db && window._fs) {
+    try {
+      const { doc, setDoc } = window._fs;
+      await setDoc(doc(window.db, 'visitLogs', visitId), visitLog);
+      dailyLogVisits.push(visitLog);
+    } catch (err) {
+      console.error('[DailyLog] saveVisitLog error', err);
+    }
+  }
+
+  // Create follow-up task if requested
+  if (nextAction === 'add-task' || nextAction === 'schedule-followup') {
+    const taskId = genId('t');
+    const task = {
+      id: taskId, title: `Follow up with ${stop.companyName || 'contact'}`,
+      notes: notes ? `Visit notes: ${notes}` : '',
+      dueDate: '', completed: false, completedAt: null,
+      linkedType: 'lead', linkedId: stop.contactId, linkedName: stop.companyName,
+      createdAt: now, updatedAt: now,
+    };
+    if (!appState.tasks) appState.tasks = [];
+    appState.tasks.push(task);
+    await saveData();
+    updateTaskBadge();
+  }
+
+  // Also add activity note to lead
+  if (stop.contactId) {
+    const lead = appState.leads?.find(l => l.id === stop.contactId);
+    if (lead) {
+      if (!lead.activityLog) lead.activityLog = [];
+      lead.activityLog.push({ date: now, type: 'visit', note: `Visit on ${formatDate(dailyLog.date)} — ${outcome}${notes ? ': ' + notes : ''}` });
+      lead.lastActivityDate = dailyLog.date;
+      lead.updatedAt = now;
+      await saveData();
+    }
+  }
+
+  // Update stop status
+  stop.status = 'completed';
+  dailyLog.updatedAt = now;
+  await _saveDailyLog();
+
+  document.getElementById('overlay-dl-log-visit')?.remove();
+  renderDailyLogStops();
+  renderDailyLogSummary();
+  toast('Visit logged!', 'success');
+}
+
+// ── Contact Profile — Visit History ──────────────────────────────────────────
+async function loadLeadVisitHistory(contactId, companyName) {
+  const el = document.getElementById(`lead-visit-history-${contactId}`);
+  if (!el) return;
+  if (!window.db || !window._fs) {
+    el.innerHTML = '<div style="font-size:12px;color:#aaa">Firebase not connected.</div>';
+    return;
+  }
+  try {
+    const { collection, query, where, orderBy, getDocs } = window._fs;
+    let visits = [];
+    // Query by contactId
+    try {
+      const q = query(
+        collection(window.db, 'visitLogs'),
+        where('contactId', '==', contactId),
+        orderBy('visitDate', 'desc')
+      );
+      const snap = await getDocs(q);
+      visits = snap.docs.map(d => d.data());
+    } catch (e) {
+      // fallback without orderBy
+      const q2 = query(collection(window.db, 'visitLogs'), where('contactId', '==', contactId));
+      const snap2 = await getDocs(q2);
+      visits = snap2.docs.map(d => d.data());
+      visits.sort((a, b) => (b.visitDate || '').localeCompare(a.visitDate || ''));
+    }
+    // Also check companyName matches (catch unplanned stops not linked by id)
+    if (companyName) {
+      try {
+        const qc = query(collection(window.db, 'visitLogs'), where('companyName', '==', companyName));
+        const snapc = await getDocs(qc);
+        const extra = snapc.docs.map(d => d.data()).filter(v => v.contactId !== contactId);
+        visits = [...visits, ...extra];
+        visits.sort((a, b) => (b.visitDate || '').localeCompare(a.visitDate || ''));
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!visits.length) {
+      el.innerHTML = '<div style="font-size:12px;color:#aaa">No visits recorded yet.</div>';
+      return;
+    }
+    el.innerHTML = visits.map(v => `
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:600;color:#1565c0">${formatDate(v.visitDate)}</span>
+          ${v.visitTime ? `<span style="color:#888">${esc(v.visitTime)}</span>` : ''}
+          <span class="dl-stop-status completed" style="font-size:10px">Visited</span>
+        </div>
+        ${v.outcome ? `<div style="color:#333;margin-top:2px">${esc(v.outcome)}</div>` : ''}
+        ${v.notes   ? `<div style="color:#666;margin-top:2px;font-style:italic">${esc(v.notes)}</div>` : ''}
+      </div>`).join('');
+  } catch (err) {
+    console.error('[DailyLog] loadLeadVisitHistory error', err);
+    el.innerHTML = '<div style="font-size:12px;color:#aaa">Could not load visit history.</div>';
+  }
+}
+
 // ── Task event listeners ──────────────────────────────────────────────────────
 document.getElementById('tab-tasks').addEventListener('click', e => {
-  const sidebarItem = e.target.closest('[data-task-filter]');
-  if (sidebarItem) {
-    activeTaskFilter = sidebarItem.dataset.taskFilter;
-    document.querySelectorAll('.task-sidebar-item').forEach(el => el.classList.toggle('active', el === sidebarItem));
-    renderTasks(); return;
-  }
   const cb = e.target.closest('[data-task-check]');
   if (cb) { toggleTaskComplete(cb.dataset.taskCheck); return; }
   const edit = e.target.closest('[data-task-edit]');
@@ -7443,6 +9502,7 @@ document.getElementById('post-convert-start-quote').addEventListener('click', ()
   setTimeout(() => openQuoteModalForCustomer(custId), 150);
 });
 document.getElementById('start-quote-from-lead-btn').addEventListener('click', () => startQuoteFromLead(viewingLeadId));
+document.getElementById('add-to-daily-log-from-lead-btn').addEventListener('click', () => fsAddToDailyLogFromProfile());
 document.getElementById('save-lead').addEventListener('click', () => saveLead(false));
 document.getElementById('save-lead-start-quote').addEventListener('click', () => saveLead(true));
 document.getElementById('cancel-lead').addEventListener('click', () => document.getElementById('overlay-lead').classList.remove('open'));
@@ -7494,80 +9554,36 @@ document.getElementById('leads-table').addEventListener('click', e => {
 // ══════════════════════════════════════════════════════════════════════════════
 // TASKS
 // ══════════════════════════════════════════════════════════════════════════════
-let activeTaskFilter = 'all';
 let editingTaskId = null;
+let _tasksUnsubscribe = null;
 
-function taskIsOverdue(t) {
-  return !t.completedAt && !!t.dueDate && t.dueDate < today();
+function startTasksListener() {
+  if (!window.db || !window._fs?.onSnapshot) return;
+  if (_tasksUnsubscribe) _tasksUnsubscribe();
+  _tasksUnsubscribe = window._fs.onSnapshot(
+    window._fs.collection(window.db, 'tasks'),
+    snap => {
+      appState.tasks = snap.docs.map(d => d.data());
+      updateTaskBadge();
+      if (typeof activeTab !== 'undefined' && activeTab === 'tasks') renderTasks();
+      if (typeof activeTab !== 'undefined' && activeTab === 'dashboard') renderDashboardTasks();
+    },
+    err => console.error('[AFL] Tasks listener error:', err)
+  );
 }
 
-function taskDueLabel(t) {
-  if (!t.dueDate) return '';
-  if (t.completedAt) return `Completed ${formatDate(t.completedAt.slice(0, 10))}`;
-  if (t.dueDate < today()) {
-    const days = Math.floor((Date.now() - new Date(t.dueDate + 'T00:00:00').getTime()) / 86400000);
-    return `${days} day${days !== 1 ? 's' : ''} overdue`;
-  }
-  if (t.dueDate === today()) return 'Due today';
-  return `Due ${formatDate(t.dueDate)}`;
-}
-
-function taskDueCls(t) {
-  if (!t.dueDate || t.completedAt) return '';
-  if (t.dueDate < today()) return 'overdue';
-  if (t.dueDate === today()) return 'today';
-  return '';
-}
-
-function getFilteredTasks(filter) {
-  const now = today();
-  const up7 = new Date(); up7.setDate(up7.getDate() + 7);
-  const up7str = up7.toISOString().slice(0, 10);
-  const archiveCutoff = new Date(); archiveCutoff.setDate(archiveCutoff.getDate() - 30);
-  const archiveStr = archiveCutoff.toISOString().slice(0, 10);
-  switch (filter) {
-    case 'all':      return appState.tasks.filter(t => !t.completedAt);
-    case 'today':    return appState.tasks.filter(t => !t.completedAt && t.dueDate === now);
-    case 'upcoming': return appState.tasks.filter(t => !t.completedAt && t.dueDate && t.dueDate > now && t.dueDate <= up7str);
-    case 'overdue':  return appState.tasks.filter(t => !t.completedAt && t.dueDate && t.dueDate < now);
-    case 'customers':return appState.tasks.filter(t => !t.completedAt && t.linkedType === 'customer');
-    case 'quotes':   return appState.tasks.filter(t => !t.completedAt && t.linkedType === 'quote');
-    case 'completed':return appState.tasks.filter(t => t.completedAt && t.completedAt.slice(0, 10) >= archiveStr)
-                       .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
-    default:         return appState.tasks.filter(t => !t.completedAt);
-  }
-}
 
 function updateTaskBadge() {
   const open = appState.tasks.filter(t => !t.completedAt);
   const badge = document.getElementById('tasks-open-badge');
   badge.textContent = open.length;
   badge.style.display = open.length > 0 ? 'inline-flex' : 'none';
-  badge.style.background = open.some(t => taskIsOverdue(t)) ? '#c62828' : '#555';
-}
-
-function updateTaskSidebarCounts() {
-  const now = today();
-  const up7 = new Date(); up7.setDate(up7.getDate() + 7);
-  const up7str = up7.toISOString().slice(0, 10);
-  const archiveCutoff = new Date(); archiveCutoff.setDate(archiveCutoff.getDate() - 30);
-  const archiveStr = archiveCutoff.toISOString().slice(0, 10);
-  const open = appState.tasks.filter(t => !t.completedAt);
-  document.getElementById('tsc-all').textContent = open.length;
-  document.getElementById('tsc-today').textContent = open.filter(t => t.dueDate === now).length;
-  document.getElementById('tsc-upcoming').textContent = open.filter(t => t.dueDate && t.dueDate > now && t.dueDate <= up7str).length;
-  document.getElementById('tsc-overdue').textContent = open.filter(t => t.dueDate && t.dueDate < now).length;
-  document.getElementById('tsc-customers').textContent = open.filter(t => t.linkedType === 'customer').length;
-  document.getElementById('tsc-quotes').textContent = open.filter(t => t.linkedType === 'quote').length;
-  document.getElementById('tsc-completed').textContent = appState.tasks.filter(t => t.completedAt && t.completedAt.slice(0, 10) >= archiveStr).length;
+  badge.style.background = '#555';
 }
 
 function renderTaskItem(t) {
   const done = !!t.completedAt;
-  const dueLabel = taskDueLabel(t);
-  const dueCls = taskDueCls(t);
-  const prioCls = t.priority || 'low';
-  const prioLabel = { low: 'Low', medium: 'Medium', high: 'High' }[prioCls] || '';
+  const dueStr = t.dueDate ? `Due ${formatDate(t.dueDate)}` : '';
   const linkBadge = t.linkedName ? `<span class="task-link-badge">${esc(t.linkedType)}: ${esc(t.linkedName)}</span>` : '';
   const assignBadge = t.assignedTo ? `<span style="font-size:11px;color:#888">→ ${esc(t.assignedTo)}</span>` : '';
   return `<div class="task-item${done ? ' completed' : ''}" data-task-id="${t.id}">
@@ -7575,8 +9591,7 @@ function renderTaskItem(t) {
     <div class="task-body">
       <div class="task-title-text" data-task-edit="${t.id}">${esc(t.title)}</div>
       <div class="task-meta">
-        ${dueLabel ? `<span class="task-due ${dueCls}">${esc(dueLabel)}</span>` : ''}
-        ${prioLabel ? `<span class="task-priority ${prioCls}">${prioLabel}</span>` : ''}
+        ${dueStr ? `<span class="task-due">${esc(dueStr)}</span>` : ''}
         ${linkBadge}${assignBadge}
       </div>
       ${t.notes ? `<div style="font-size:12px;color:#777;margin-top:4px;white-space:pre-wrap">${esc(t.notes)}</div>` : ''}
@@ -7647,61 +9662,32 @@ function renderCommission() {
 }
 
 function renderTasks() {
-  updateTaskSidebarCounts();
-  const tasks = getFilteredTasks(activeTaskFilter);
+  const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+  const open = appState.tasks.filter(t => !t.completedAt).sort(byNewest);
+  const done = appState.tasks.filter(t => !!t.completedAt).sort(byNewest);
   const container = document.getElementById('tasks-list-container');
-  if (tasks.length === 0) {
-    const msgs = { all:'No open tasks. Nice work!', today:'No tasks due today.', upcoming:'No upcoming tasks in the next 7 days.', overdue:'No overdue tasks.', customers:'No tasks linked to customers.', quotes:'No tasks linked to quotes.', completed:'No completed tasks in the last 30 days.' };
-    container.innerHTML = `<div class="task-empty">${msgs[activeTaskFilter] || 'No tasks found.'}</div>`;
-    return;
-  }
-  if (activeTaskFilter === 'completed') {
-    container.innerHTML = `
-      <div class="tasks-section-hdr">Completed (last 30 days) <button class="btn-icon" onclick="clearCompletedTasks()" style="color:#c62828;font-size:11px">Clear All</button></div>
-      <div class="task-list">${tasks.map(renderTaskItem).join('')}</div>`;
-    return;
-  }
-  const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
-  const byPriorityThenDate = (a, b) => {
-    const pd = (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
-    if (pd !== 0) return pd;
-    if (!a.dueDate && !b.dueDate) return 0;
-    if (!a.dueDate) return 1; if (!b.dueDate) return -1;
-    return a.dueDate.localeCompare(b.dueDate);
-  };
-  const now = today();
-  const overdue  = tasks.filter(t => t.dueDate && t.dueDate < now).sort(byPriorityThenDate);
-  const dueToday = tasks.filter(t => t.dueDate === now).sort(byPriorityThenDate);
-  const rest     = tasks.filter(t => !t.dueDate || t.dueDate > now).sort(byPriorityThenDate);
   let html = '';
-  if (overdue.length)  { html += `<div class="tasks-section-hdr" style="color:#c62828">Overdue</div><div class="task-list">${overdue.map(renderTaskItem).join('')}</div>`; }
-  if (dueToday.length) { html += `<div class="tasks-section-hdr" style="color:#e65100">Due Today</div><div class="task-list">${dueToday.map(renderTaskItem).join('')}</div>`; }
-  if (rest.length)     { html += `${overdue.length || dueToday.length ? '<div class="tasks-section-hdr">Upcoming &amp; Scheduled</div>' : ''}<div class="task-list">${rest.map(renderTaskItem).join('')}</div>`; }
+  if (!open.length && !done.length) {
+    html = '<div class="task-empty">No tasks yet. Add one above!</div>';
+  } else {
+    if (open.length) html += `<div class="task-list">${open.map(renderTaskItem).join('')}</div>`;
+    if (done.length) html += `<div class="tasks-section-hdr">Completed <button class="btn-icon" onclick="clearCompletedTasks()" style="color:#c62828;font-size:11px">Clear All</button></div><div class="task-list">${done.map(renderTaskItem).join('')}</div>`;
+  }
   container.innerHTML = html;
 }
 
 function renderDashboardTasks() {
-  const now = today();
-  const up7 = new Date(); up7.setDate(up7.getDate() + 7);
-  const up7str = up7.toISOString().slice(0, 10);
-  const open = appState.tasks.filter(t => !t.completedAt);
-  const overdueCount = open.filter(t => t.dueDate && t.dueDate < now).length;
-  const todayCount   = open.filter(t => t.dueDate === now).length;
-  const weekCount    = open.filter(t => t.dueDate && t.dueDate >= now && t.dueDate <= up7str).length;
-  document.getElementById('dash-tasks-stats').innerHTML = `
-    <div class="dash-task-stat"><div class="dash-task-stat-num" style="${overdueCount > 0 ? 'color:#c62828' : ''}">${overdueCount}</div><div class="dash-task-stat-label">Overdue</div></div>
-    <div class="dash-task-stat"><div class="dash-task-stat-num" style="${todayCount > 0 ? 'color:#e65100' : ''}">${todayCount}</div><div class="dash-task-stat-label">Due Today</div></div>
-    <div class="dash-task-stat"><div class="dash-task-stat-num" style="color:#1565c0">${weekCount}</div><div class="dash-task-stat-label">Due This Week</div></div>`;
-  const upcoming = open.filter(t => t.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 3);
+  const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+  const open = appState.tasks.filter(t => !t.completedAt).sort(byNewest).slice(0, 5);
+  document.getElementById('dash-tasks-stats').innerHTML = '';
   const listEl = document.getElementById('dash-tasks-upcoming');
-  if (!upcoming.length) { listEl.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:10px">No upcoming tasks with due dates.</div>'; return; }
-  listEl.innerHTML = upcoming.map(t => {
-    const dueCls = taskDueCls(t);
-    const dueLabel = taskDueLabel(t);
+  if (!open.length) { listEl.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:10px">No open tasks.</div>'; return; }
+  listEl.innerHTML = open.map(t => {
+    const dueStr = t.dueDate ? `Due ${formatDate(t.dueDate)}` : '';
     return `<div class="dash-task-item">
       <div class="dash-task-cb" data-dash-check="${t.id}" title="Mark complete"></div>
       <span class="dash-task-title">${esc(t.title)}</span>
-      ${dueLabel ? `<span class="dash-task-due ${dueCls}">${esc(dueLabel)}</span>` : ''}
+      ${dueStr ? `<span class="dash-task-due">${esc(dueStr)}</span>` : ''}
     </div>`;
   }).join('');
 }
@@ -7712,7 +9698,6 @@ function openTaskModal(id = null, prefill = {}) {
   document.getElementById('task-modal-title').textContent = id ? 'Edit Task' : 'New Task';
   document.getElementById('t-title').value = t ? t.title : (prefill.title || '');
   document.getElementById('t-due').value   = t ? (t.dueDate || '') : (prefill.dueDate || '');
-  document.getElementById('t-priority').value = t ? (t.priority || 'medium') : (prefill.priority || 'medium');
   document.getElementById('t-assigned').value = t ? (t.assignedTo || '') : (prefill.assignedTo || '');
   document.getElementById('t-notes').value    = t ? (t.notes || '') : (prefill.notes || '');
   document.getElementById('t-title').classList.remove('invalid');
@@ -7733,7 +9718,6 @@ function saveTask() {
   const data = {
     title,
     dueDate:    document.getElementById('t-due').value || null,
-    priority:   document.getElementById('t-priority').value,
     linkedType: linkType || null,
     linkedId:   document.getElementById('t-link-id').value || null,
     linkedName: document.getElementById('t-link-name').value.trim() || null,
@@ -7791,7 +9775,7 @@ function addQuickTask() {
   const title = input.value.trim();
   if (!title) return;
   const now = new Date().toISOString();
-  appState.tasks.push({ id: genId('t'), title, dueDate: null, priority: 'medium', linkedType: null, linkedId: null, linkedName: null, assignedTo: null, notes: null, completedAt: null, createdAt: now, updatedAt: now });
+  appState.tasks.push({ id: genId('t'), title, dueDate: null, linkedType: null, linkedId: null, linkedName: null, assignedTo: null, notes: null, completedAt: null, createdAt: now, updatedAt: now });
   input.value = '';
   saveData(); updateTaskBadge(); renderTasks();
   toast('Task added');
@@ -7831,15 +9815,15 @@ function renderLinkedTasks(linkedType, linkedId, linkedName, containerEl) {
   if (!tasks.length) {
     html += `<div style="color:#bbb;font-size:12px;padding:4px 0">No tasks linked to this record.</div>`;
   } else {
-    for (const t of [...open, ...done]) {
+    const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+    for (const t of [...open.sort(byNewest), ...done.sort(byNewest)]) {
       const doneCls = t.completedAt ? 'checked' : '';
       const ttlCls  = t.completedAt ? 'done' : '';
-      const dueCls  = taskDueCls(t);
       const dueStr  = t.dueDate ? formatDate(t.dueDate) : '';
       html += `<div class="linked-task-row">
         <div class="linked-task-cb ${doneCls}" onclick="toggleTaskComplete('${t.id}')" title="${t.completedAt ? 'Mark open' : 'Mark complete'}"></div>
         <span class="linked-task-ttl ${ttlCls}">${esc(t.title)}</span>
-        ${dueStr ? `<span class="linked-task-due ${dueCls}">${esc(dueStr)}</span>` : ''}
+        ${dueStr ? `<span class="linked-task-due">${esc(dueStr)}</span>` : ''}
       </div>`;
     }
   }
@@ -9516,10 +11500,13 @@ async function runStartupDedupe() {
   updateTaskBadge();
   updateLeadsBadge();
   updateDocsCountBadge();
+  startTasksListener();
   await initGitBackup();
   await initBackup();
   await initLeadGen();
   await initSystemSettings();
+  // Daily Log — preload history (non-blocking)
+  loadDailyLogHistory().catch(err => console.warn('[DailyLog] history preload error', err));
 })();
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -10305,15 +12292,19 @@ function renderFleetSearchResults(results) {
       <div class="fs-result-details">${rows.join('')}</div>
       <div class="fs-result-actions">
         <button class="btn-icon" style="font-size:13px;padding:7px 14px" onclick="fsViewProfile('${l.id}')">View Profile</button>
+        <div style="position:relative">
+          <button class="btn-icon" style="font-size:13px;padding:7px 14px;color:#2e7d32;border-color:#a5d6a7" onclick="fsAddToDailyLogFromList('${l.id}', this)">📅 Add to Daily Log</button>
+        </div>
         <button class="btn-save" style="font-size:13px;padding:7px 16px" onclick="fsStartQuote('${l.id}')">Start Quote →</button>
       </div>
+      <div id="fs-dl-feedback-${l.id}" class="fs-dl-feedback" style="display:none"></div>
     </div>`;
   }).join('');
 }
 
 function fsViewProfile(leadId) {
   closeFleetSearch();
-  setTimeout(() => { switchTab('leads'); openLeadProfile(leadId); }, 150);
+  setTimeout(() => { switchTab('leads'); openLeadProfile(leadId, { fromFleetSearch: true }); }, 150);
 }
 
 function fsStartQuote(leadId) {

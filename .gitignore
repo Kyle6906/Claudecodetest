@@ -36,3 +36,5 @@ npm-debug.log*
 *.exe
 *.msi
 *.pkg
+.firebase/
+*.lnk

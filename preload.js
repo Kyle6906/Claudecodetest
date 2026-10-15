@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('aflAPI', {
   saveAsDoc:        (storedFileName, name)  => ipcRenderer.invoke('docs:saveAs', storedFileName, name),
   deleteDocFile:    (storedFileName)        => ipcRenderer.invoke('docs:delete', storedFileName),
   getStorageInfo:   ()                      => ipcRenderer.invoke('docs:storageInfo'),
+  pickDocForUpload: ()                      => ipcRenderer.invoke('docs:pickForUpload'),
+  downloadDocUrl:   (url, name)             => ipcRenderer.invoke('docs:downloadUrl', url, name),
   // App lifecycle
   readyToClose:     ()                      => ipcRenderer.invoke('app:ready-to-close'),
   onBeforeClose:    (cb)                    => ipcRenderer.on('app:before-close', () => cb()),
@@ -34,8 +36,11 @@ contextBridge.exposeInMainWorld('aflAPI', {
   gitCommitPush:    (message)             => ipcRenderer.invoke('git:commit-push', message),
   gitStatus:        ()                    => ipcRenderer.invoke('git:status'),
   // Lead Generation
-  lgGeocode:        (p)                   => ipcRenderer.invoke('leadgen:geocode', p),
-  lgMapsSearch:     (p)                   => ipcRenderer.invoke('leadgen:maps-search', p),
+  lgDistanceMatrix:     (p)               => ipcRenderer.invoke('leadgen:distance-matrix', p),
+  lgGeocode:            (p)               => ipcRenderer.invoke('leadgen:geocode', p),
+  lgGeocodeAddress:     (p)               => ipcRenderer.invoke('leadgen:geocode-address', p),
+  lgPlacesAutocomplete: (p)               => ipcRenderer.invoke('leadgen:places-autocomplete', p),
+  lgMapsSearch:         (p)               => ipcRenderer.invoke('leadgen:maps-search', p),
   lgMapsDetails:    (p)                   => ipcRenderer.invoke('leadgen:maps-details', p),
   lgTestMaps:       (key)                 => ipcRenderer.invoke('leadgen:test-maps-key', key),
   lgRawTest:        (key)                 => ipcRenderer.invoke('leadgen:raw-test', key),
@@ -44,4 +49,9 @@ contextBridge.exposeInMainWorld('aflAPI', {
   lgApolloRawTest:  (key)                 => ipcRenderer.invoke('leadgen:apollo-raw-test', key),
   lgStaticMap:      (p)                   => ipcRenderer.invoke('leadgen:static-map', p),
   openExternal:     (url)                 => ipcRenderer.invoke('shell:open-external', url),
+});
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  openFileDialog: ()           => ipcRenderer.invoke('open-file-dialog'),
+  readFile:       (filePath)   => ipcRenderer.invoke('read-file', filePath),
 });
