@@ -101,7 +101,7 @@ function updateTrayMenu() {
 }
 
 function showWindow() {
-  if (!mainWin) return;
+  if (!mainWin || mainWin.isDestroyed()) return;
   if (mainWin.isMinimized()) mainWin.restore();
   mainWin.show();
   mainWin.focus();
@@ -153,7 +153,20 @@ function createWindow() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
+// Only one copy of the app may run. A second copy fights the first over its
+// storage files, which made sign-in (and IndexedDB) fail. Re-launching just
+// brings the existing window to the front.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWin || mainWin.isDestroyed()) createWindow();
+    else showWindow();
+  });
+}
+
 app.whenReady().then(() => {
+  if (!app.hasSingleInstanceLock()) return;
   ensureDataDir();
   createWindow();
   createTray();
@@ -380,8 +393,10 @@ ipcMain.handle('docs:storageInfo', () => {
 // ── IPC: App close / ready-to-close flow ─────────────────────────────────────
 
 ipcMain.handle('app:ready-to-close', () => {
+  // Backup finished — actually quit (previously only the window closed and the
+  // process kept running hidden, so the next launch started a second copy).
   forceQuit = true;
-  if (mainWin) mainWin.close();
+  app.quit();
 });
 
 // ── IPC: System settings ──────────────────────────────────────────────────────

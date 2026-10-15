@@ -8,7 +8,7 @@
 //    deployed with:  firebase deploy --only firestore:rules,storage
 //
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+import { initializeAuth, browserLocalPersistence, indexedDBLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
 import {
   initializeFirestore,
   memoryLocalCache,
@@ -46,7 +46,9 @@ const _app  = initializeApp(_cfg);
 // memoryLocalCache avoids IndexedDB entirely — no quota_database errors.
 // Reads from Firestore network on every startup; writes go directly to Firestore.
 const _db   = initializeFirestore(_app, { localCache: memoryLocalCache() });
-const _auth = getAuth(_app);
+// Remember sign-in in localStorage first: IndexedDB has hit quota errors in this
+// Electron app, which made Firebase silently forget the sign-in on every restart.
+const _auth = initializeAuth(_app, { persistence: [browserLocalPersistence, indexedDBLocalPersistence] });
 
 const _storage = getStorage(_app);
 
