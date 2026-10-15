@@ -24,6 +24,26 @@
   let reviewShown = false;
   let saveTimer = null;
 
+  // For collections without a live listener (tasks, equipment, contactDocuments,
+  // settings) remember a hash of what was last uploaded, across restarts, so a
+  // save only uploads records that actually changed. The old "upload everything
+  // on every save" blew through Firestore's 20K writes/day free limit.
+  const PUSHED_KEY = 'afl_pushed_hashes_v1';
+  let pushed = {};
+  try { pushed = JSON.parse(localStorage.getItem(PUSHED_KEY) || '{}') || {}; } catch (e) { pushed = {}; }
+  let pushedSaveTimer = null;
+  function savePushed() {
+    clearTimeout(pushedSaveTimer);
+    pushedSaveTimer = setTimeout(() => {
+      try { localStorage.setItem(PUSHED_KEY, JSON.stringify(pushed)); } catch (e) { console.error('[CloudSync] could not save upload hashes', e); }
+    }, 500);
+  }
+  function hash(str) {            // FNV-1a 32-bit
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(36) + ':' + str.length;
+  }
+
   // Stable JSON (sorted keys) so key order from Firestore doesn't look like a change
   function stable(v) {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
@@ -126,15 +146,32 @@
   // Called by _syncToFirestore: push only once we know the cloud state, and only
   // if this record differs from the cloud copy.
   function shouldPush(col, rec) {
-    if (!COLS.includes(col)) return true;
-    if (!ready[col] || !rec || !rec.id) return false;
+    if (!rec || !rec.id) return false;
+    if (!COLS.includes(col)) return (pushed[col] || {})[rec.id] !== hash(stable(rec));
+    if (!ready[col]) return false;
     return remoteCache[col][rec.id] !== stable(rec);
   }
+
+  // Record that these records are now in the cloud (after a successful upload,
+  // or when they arrived from the cloud via a listener).
+  function markPushed(col, recs) {
+    if (COLS.includes(col)) {
+      for (const r of recs) if (r && r.id) remoteCache[col][r.id] = stable(r);
+      return;
+    }
+    if (!pushed[col]) pushed[col] = {};
+    for (const r of recs) if (r && r.id) pushed[col][r.id] = hash(stable(r));
+    savePushed();
+  }
+
+  function shouldPushSettings(obj) { return pushed.__settings !== hash(stable(obj)); }
+  function markSettings(obj) { pushed.__settings = hash(stable(obj)); savePushed(); }
 
   function isReady(col) { return !COLS.includes(col) || ready[col]; }
 
   async function deleteRemote(col, id) {
     delete remoteCache[col]?.[id];
+    if (pushed[col]) { delete pushed[col][id]; savePushed(); }
     if (!window.db || !window._fs) return;
     try {
       await window._fs.deleteDoc(window._fs.doc(window.db, col, id));
@@ -248,5 +285,5 @@
     });
   }
 
-  window.CloudSync = { start, shouldPush, isReady, deleteRemote, stable };
+  window.CloudSync = { start, shouldPush, markPushed, shouldPushSettings, markSettings, isReady, deleteRemote, stable };
 })();

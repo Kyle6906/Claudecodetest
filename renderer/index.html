@@ -3585,8 +3585,19 @@ async function saveData() {
   }
 }
 
+let _fsSyncRunning = false, _fsSyncAgain = false;
 async function _syncToFirestore() {
+  // One upload at a time; if a save happens mid-upload, run once more after.
+  if (_fsSyncRunning) { _fsSyncAgain = true; return; }
+  _fsSyncRunning = true;
+  try {
+    do { _fsSyncAgain = false; await _syncToFirestoreOnce(); } while (_fsSyncAgain);
+  } finally { _fsSyncRunning = false; }
+}
+
+async function _syncToFirestoreOnce() {
   const { collection, doc, writeBatch, setDoc } = window._fs;
+  const CS = window.CloudSync;
   const cols = [
     ['leads', appState.leads || []],
     ['quotes', appState.quotes || []],
@@ -3595,26 +3606,36 @@ async function _syncToFirestore() {
     ['equipment', appState.equipment || []],
     ['contactDocuments', appState.contactDocuments || []],
   ];
+  let written = 0;
   for (const [name, records] of cols) {
-    // leads/quotes/sales: only push records that differ from the cloud copy, and
-    // only after the cloud listener has loaded (see cloud-sync.js)
-    if (window.CloudSync && !window.CloudSync.isReady(name)) continue;
+    // Only upload records that changed since they were last in the cloud (see
+    // cloud-sync.js). leads/quotes/sales also wait for the cloud listener.
+    if (CS && !CS.isReady(name)) continue;
     let batch = writeBatch(window.db);
-    let count = 0;
+    let pending = [];
     for (const record of records) {
       if (!record.id) continue;
-      if (window.CloudSync && !window.CloudSync.shouldPush(name, record)) continue;
+      if (CS && !CS.shouldPush(name, record)) continue;
       batch.set(doc(window.db, name, record.id), record);
-      if (++count >= 499) { await batch.commit(); batch = writeBatch(window.db); count = 0; }
+      pending.push(record);
+      if (pending.length >= 499) {
+        await batch.commit(); CS?.markPushed(name, pending); written += pending.length;
+        batch = writeBatch(window.db); pending = [];
+      }
     }
-    if (count > 0) await batch.commit();
+    if (pending.length) { await batch.commit(); CS?.markPushed(name, pending); written += pending.length; }
   }
-  await setDoc(doc(window.db, 'settings', 'main'), {
+  const settingsDoc = {
     territoryZips: appState.settings?.territoryZips || [],
     leadGen: appState.settings?.leadGen || {},
     homeAddress: appState.settings?.homeAddress || '',
     system: appState.settings?.system || {},
-  });
+  };
+  if (!CS || CS.shouldPushSettings(settingsDoc)) {
+    await setDoc(doc(window.db, 'settings', 'main'), settingsDoc);
+    CS?.markSettings(settingsDoc); written++;
+  }
+  if (written) console.log(`[AFL] Firestore sync: ${written} document(s) uploaded`);
 }
 
 async function _loadFromFirestore() {
@@ -9574,6 +9595,7 @@ function startTasksListener() {
     window._fs.collection(window.db, 'tasks'),
     snap => {
       appState.tasks = snap.docs.map(d => d.data());
+      window.CloudSync?.markPushed('tasks', appState.tasks);   // already in the cloud — don't re-upload
       updateTaskBadge();
       if (typeof activeTab !== 'undefined' && activeTab === 'tasks') renderTasks();
       if (typeof activeTab !== 'undefined' && activeTab === 'dashboard') renderDashboardTasks();
