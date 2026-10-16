@@ -2268,9 +2268,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 </div>
 
 <!-- ── Modal: Follow-Up Email Draft ──────────────────────────────────────── -->
-<div class="modal-overlay" id="overlay-followup-draft">
+<div class="modal-overlay" id="overlay-followup-draft" style="z-index:110">
   <div class="modal" style="max-width:560px">
     <div class="modal-title" id="followup-draft-title">Draft Follow-Up Email</div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <label for="followup-draft-touch" style="font-size:12px;font-weight:600;color:#555">Template</label>
+      <select class="form-select" id="followup-draft-touch" style="width:auto" onchange="followupChangeTouch()"></select>
+    </div>
     <div style="margin-bottom:12px">
       <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">Subject</label>
       <input class="form-input" id="followup-draft-subject" type="text" style="width:100%">
@@ -2786,6 +2790,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     </div>
     <div id="quote-docs-container" data-docs-container="quote"></div>
     <div class="modal-footer">
+      <span id="quote-draft-email-wrap" style="margin-right:auto"></span>
       <button class="btn-cancel" id="cancel-quote">Cancel</button>
       <button class="btn-save" id="save-quote">Save Quote</button>
     </div>
@@ -4293,6 +4298,7 @@ function openQuoteModal(id = null) {
   } else if (qDocsEl) {
     qDocsEl.innerHTML = '';
   }
+  document.getElementById('quote-draft-email-wrap').innerHTML = q ? draftEmailButtonHtml(q) : '';
   document.getElementById('overlay-quote').classList.add('open');
   document.getElementById('q-name').focus();
   updateQuoteFleetPanel();
@@ -4590,6 +4596,7 @@ function renderDealsList() {
       <td style="white-space:nowrap">
         <button class="btn-icon" style="font-size:11px;padding:3px 7px" data-id="${q.id}" data-action="edit-quote">Edit</button>
         <button class="btn-icon convert" style="font-size:11px;padding:3px 7px" data-id="${q.id}" data-action="convert">→ Sale</button>
+        ${draftEmailButtonHtml(q)}
       </td>
     </tr>`;
   }).join('');
@@ -5193,47 +5200,79 @@ let _fuDraftQuoteId  = null;
 let _fuDraftTouch    = null;
 let _fuDraftEmail    = null;
 
+// Touch to draft by default: the next one due, else the first unsent, else Touch 4
+function _fuDefaultTouch(q) {
+  const fu = calcFollowUpStatus(q);
+  if (fu?.touch) return fu.touch;
+  const sent = (q.followUpTouches || []).map(t => t.touch);
+  return [1, 2, 3, 4].find(t => !sent.includes(t)) || 4;
+}
+
+// Draft Email button for any open quote with an email; blue when a touch is due, lighter otherwise
+function draftEmailButtonHtml(q) {
+  if (!['quoted', 'followup'].includes(q.stage || 'quoted') || !q.customerEmail) return '';
+  const fu = calcFollowUpStatus(q);
+  const onclick = `event.stopPropagation();openFollowUpDraft('${esc(q.id)}')`;
+  if (fu?.status === 'due') {
+    return `<button class="btn-save" style="font-size:11px;padding:3px 8px;background:#1565c0;white-space:nowrap" onclick="${onclick}">Draft Email</button>`;
+  }
+  const touch = _fuDefaultTouch(q);
+  const label = fu?.status === 'manual_review' ? `Draft Touch ${touch}` : `Draft Touch ${touch} (early)`;
+  return `<button class="btn-icon" style="font-size:11px;padding:3px 8px;background:#e3f2fd;color:#1565c0;border-color:#90caf9;white-space:nowrap" onclick="${onclick}">${label}</button>`;
+}
+
 function openFollowUpDraft(quoteId) {
   const q = appState.quotes.find(x => x.id === quoteId);
   if (!q) return;
-  const fu = calcFollowUpStatus(q);
-  if (!fu || fu.status === 'manual_review') return;
+  const touch = _fuDefaultTouch(q);
+  const sent = (q.followUpTouches || []).map(t => t.touch);
 
+  _fuDraftQuoteId = quoteId;
+  _fuDraftEmail   = q.customerEmail || '';
+  document.getElementById('followup-draft-touch').innerHTML = [1, 2, 3, 4]
+    .map(t => `<option value="${t}">Touch ${t}${sent.includes(t) ? ' (sent)' : ''}</option>`).join('');
+  document.getElementById('followup-draft-email').textContent = _fuDraftEmail || '(no email on file)';
+  _fuLoadTemplate(q, touch);
+  document.getElementById('overlay-followup-draft').classList.add('open');
+}
+
+function followupChangeTouch() {
+  const q = appState.quotes.find(x => x.id === _fuDraftQuoteId);
+  if (!q) return;
+  _fuLoadTemplate(q, Number(document.getElementById('followup-draft-touch').value));
+}
+
+function _fuLoadTemplate(q, touch) {
+  const tmpl = _fuTemplates(q)[touch] || _fuTemplates(q)[1];
+  _fuDraftTouch = touch;
+  document.getElementById('followup-draft-touch').value = String(touch);
+  document.getElementById('followup-draft-title').textContent = `Touch ${touch} — ${q.customerName}`;
+  document.getElementById('followup-draft-subject').value = tmpl.subject;
+  document.getElementById('followup-draft-body').value = tmpl.body;
+}
+
+function _fuTemplates(q) {
   const firstName = q.firstName || q.customerName?.split(' ')[0] || 'there';
   const model = q.forkliftModel || q.lineItems?.[0]?.forkliftModel || 'forklift';
-  const monthYear = q.dateOfQuote
-    ? new Date(q.dateOfQuote + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : '';
 
-  const templates = {
+  return {
     1: {
       subject: `Your forklift quote - still on your radar?`,
       body: `Hi ${firstName},\n\nI'm going through my open quotes and don't want to keep bugging you if the timing isn't right. Is the ${model} quote still something on your radar for this year, or should I set it aside for now? Either answer is helpful - no wrong response here.\n\nThanks,\nKyle Waite`,
     },
     2: {
-      subject: `Quick update on your ${model} quote`,
-      body: `Hi ${firstName},\n\nwanted to make sure you had the latest on the ${model} - pricing and lead times shift quarter to quarter and I'd rather you have current numbers than stale ones. Happy to refresh your quote if it'd help. Is this still something you're weighing?\n\nThanks,\nKyle Waite`,
+      subject: `Anything to adjust on your quote?`,
+      body: `Hi ${firstName},\n\nfollowing up on the ${model} quote. If anything needs to change, like options, attachments, LP gas vs. battery, or new vs. pre-owned, I'm happy to rework it. We also have some creative financing options to suit your operation. Does it fit what you need as-is?\n\nThanks,\nKyle Waite`,
     },
     3: {
-      subject: `Question about your current equipment`,
-      body: `Hi ${firstName},\n\nquick question on the quote I put together for you - the unit you're looking to replace, roughly how many hours is it at now? If it's getting up there, there may be a trade-in number that changes the math on the ${model} quote. Worth a quick look if you're open to it.\n\nThanks,\nKyle Waite`,
+      subject: `Where things stand on your quote`,
+      body: `Hi ${firstName},\n\nchecking in on the ${model} quote. Is there anything holding things up on your end, like budget timing, approvals, or another quote you're comparing? If I know what it is, I may be able to help.\n\nThanks,\nKyle Waite`,
     },
     4: {
       subject: `Should I keep your quote open or close it out?`,
       body: `Hi ${firstName},\n\nI'm cleaning up my open quotes and don't want to let yours sit if the timing isn't right. Before I set the ${model} quote aside, is this still a possibility for you this year, or should I close it out for now? No problem either way - just let me know.\n\nThanks,\nKyle Waite`,
     },
   };
-
-  const tmpl = templates[fu.touch] || templates[1];
-  _fuDraftQuoteId = quoteId;
-  _fuDraftTouch   = fu.touch;
-  _fuDraftEmail   = q.customerEmail || '';
-
-  document.getElementById('followup-draft-title').textContent = `Touch ${fu.touch} — ${q.customerName}`;
-  document.getElementById('followup-draft-subject').value = tmpl.subject;
-  document.getElementById('followup-draft-body').value = tmpl.body;
-  document.getElementById('followup-draft-email').textContent = _fuDraftEmail || '(no email on file)';
-  document.getElementById('overlay-followup-draft').classList.add('open');
 }
 
 function _buildMailtoLink(email, subject, body) {
@@ -5276,6 +5315,12 @@ function _logFollowUpTouch(quoteId, touch) {
   renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
   updateOverdueBadge();
   if (activeTab === 'deals') renderDeals();
+  // If the quote modal is open on this quote, sync its fields so a later Save doesn't undo the touch
+  if (editingQuoteId === quoteId && document.getElementById('overlay-quote').classList.contains('open')) {
+    document.getElementById('q-followup-date').value = q.followUpDate;
+    document.getElementById('q-stage').value = q.stage;
+    document.getElementById('quote-draft-email-wrap').innerHTML = draftEmailButtonHtml(q);
+  }
   toast(`Touch ${touch} logged for ${q.customerName}`);
 }
 
@@ -5837,7 +5882,7 @@ function renderPipeline() {
         </div>
         <div class="pc-actions">
           <button class="btn-icon" data-id="${q.id}" data-action="edit-quote" style="flex:1">Edit</button>
-          ${fuStatus?.status === 'due' && q.customerEmail ? `<button class="btn-save" style="font-size:11px;padding:3px 8px;background:#1565c0" onclick="openFollowUpDraft('${q.id}')">Draft Email</button>` : ''}
+          ${draftEmailButtonHtml(q)}
           ${stage === 'quoted'   ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-followup">Follow-Up</button>` : ''}
           ${stage === 'followup' ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-quoted">← Quoted</button>` : ''}
           ${(stage === 'quoted' || stage === 'followup') ? `<button class="btn-icon convert" data-id="${q.id}" data-action="pl-won">Won ✓</button>` : ''}
