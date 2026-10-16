@@ -67,8 +67,13 @@ const saleBrief = s => clean({
   condition: s.condition, price: s.salePrice, financing: s.financingType, delivery: s.deliveryDate,
   commissionPaid: s.commissionPaidOut, notes: s.notes,
 });
+const taskEntered = t => {
+  let ms = t.createdAt ? Date.parse(t.createdAt) : NaN;
+  if (isNaN(ms)) { const m = /^t_(\d{12,})_/.exec(t.id || ''); if (m) ms = Number(m[1]); }
+  return isNaN(ms) ? undefined : new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+};
 const taskBrief = t => clean({
-  id: t.id, title: t.title, due: t.dueDate, done: !!t.completedAt, completedAt: t.completedAt,
+  id: t.id, title: t.title, entered: taskEntered(t), due: t.dueDate, done: !!t.completedAt, completedAt: t.completedAt,
   linkedTo: t.linkedName, linkedId: t.linkedId, notes: t.notes,
 });
 const visitBrief = v => clean({

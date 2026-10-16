@@ -1159,6 +1159,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .task-item.completed .task-title-text { text-decoration: line-through; color: #999; }
 .task-meta { font-size: 11px; color: #888; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .task-due { }
+.task-entered { color: #999; }
 .task-priority { padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 .task-priority.low    { background: #f3f3f3; color: #777; }
 .task-priority.medium { background: #fff8e1; color: #f57f17; }
@@ -9613,8 +9614,20 @@ function updateTaskBadge() {
   badge.style.background = '#555';
 }
 
+// Date a task was entered: createdAt, or the timestamp baked into its id (t_<ms>_xxxxx)
+function taskEnteredLabel(t) {
+  let ms = t.createdAt ? Date.parse(t.createdAt) : NaN;
+  if (isNaN(ms)) { const m = /^t_(\d{12,})_/.exec(t.id || ''); if (m) ms = Number(m[1]); }
+  if (isNaN(ms)) return '';
+  const d = new Date(ms);
+  const opts = { month: 'short', day: 'numeric' };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  return 'Entered ' + d.toLocaleDateString('en-US', opts);
+}
+
 function renderTaskItem(t) {
   const done = !!t.completedAt;
+  const enteredStr = taskEnteredLabel(t);
   const dueStr = t.dueDate ? `Due ${formatDate(t.dueDate)}` : '';
   const linkBadge = t.linkedName ? `<span class="task-link-badge">${esc(t.linkedType)}: ${esc(t.linkedName)}</span>` : '';
   const assignBadge = t.assignedTo ? `<span style="font-size:11px;color:#888">→ ${esc(t.assignedTo)}</span>` : '';
@@ -9623,6 +9636,7 @@ function renderTaskItem(t) {
     <div class="task-body">
       <div class="task-title-text" data-task-edit="${t.id}">${esc(t.title)}</div>
       <div class="task-meta">
+        ${enteredStr ? `<span class="task-entered">${esc(enteredStr)}</span>` : ''}
         ${dueStr ? `<span class="task-due">${esc(dueStr)}</span>` : ''}
         ${linkBadge}${assignBadge}
       </div>
