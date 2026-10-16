@@ -76,6 +76,19 @@ function priorityBadge(p) {
   return `<span class="badge badge-${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`;
 }
 function stageBadge(s) { return `<span class="badge badge-${s||'quoted'}">${(s||'quoted').charAt(0).toUpperCase()+(s||'quoted').slice(1)}</span>`; }
+// Same five-status pipeline as the desktop (Customer/Active/Contact/Potential/Inactive)
+function contactStatus(l) {
+  if (['customer', 'active_customer'].includes(l.status)) return 'customer';
+  if (['not_interested', 'dormant', 'inactive_customer', 'former_customer'].includes(l.status)) return 'inactive';
+  const name = (l.companyName || '').toLowerCase();
+  const mine = r => (l.id && r.linkedCustomerId === l.id) || (l.linkedCustomerId && r.linkedCustomerId === l.linkedCustomerId) || (name && (r.customerName || '').toLowerCase() === name);
+  if ((appData.sales || []).some(mine)) return 'customer';
+  if ((appData.quotes || []).some(q => mine(q) && q.stage !== 'won' && q.stage !== 'lost')) return 'active';
+  const last = l.lastActivityDate || (l.updatedAt || '').slice(0, 10) || (l.createdAt || '').slice(0, 10);
+  if (last && (Date.now() - new Date(last + 'T00:00:00').getTime()) / 86400000 > 90) return 'inactive';
+  if (['quote_auto', 'sale_auto', 'customer_record'].includes(l.leadSource)) return 'contact';
+  return 'potential';
+}
 function statusBadge(s) {
   const k = (s||'lead').toLowerCase();
   return `<span class="badge badge-${k}">${k.charAt(0).toUpperCase()+k.slice(1)}</span>`;
@@ -493,7 +506,7 @@ function renderContactsList(query) {
         <div class="contact-row-sub">${esc(sub)}${sub?' · ':''}${(l.contactName||l.firstName) ? esc(l.contactName||((l.firstName||'')+' '+(l.lastName||'')).trim()) : ''}</div>
       </div>
       <div class="contact-row-right">
-        ${statusBadge(l.status)}
+        ${statusBadge(contactStatus(l))}
         ${priority ? priorityBadge(priority) : ''}
       </div>
       ${phoneHtml}

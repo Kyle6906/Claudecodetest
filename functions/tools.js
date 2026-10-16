@@ -41,9 +41,23 @@ function createStore(db) {
 
 // ── Shapers ───────────────────────────────────────────────────────────────────
 const contactName = l => l.contactName || [l.firstName, l.lastName].filter(Boolean).join(' ');
-const leadBrief = l => clean({
+// Same five-status pipeline as the desktop app: customer, active, contact, potential, inactive.
+// Only "customer" and "not interested" are manual overrides; other stored values are ignored.
+function contactStatus(l, sales = [], quotes = []) {
+  if (['customer', 'active_customer'].includes(l.status)) return 'customer';
+  if (['not_interested', 'dormant', 'inactive_customer', 'former_customer'].includes(l.status)) return 'inactive';
+  const name = norm(l.companyName).trim();
+  const mine = r => (l.id && r.linkedCustomerId === l.id) || (l.linkedCustomerId && r.linkedCustomerId === l.linkedCustomerId) || (name && norm(r.customerName).trim() === name);
+  if (sales.some(mine)) return 'customer';
+  if (quotes.some(q => mine(q) && q.stage !== 'won' && q.stage !== 'lost')) return 'active';
+  const last = l.lastActivityDate || String(l.updatedAt || '').slice(0, 10) || String(l.createdAt || '').slice(0, 10);
+  if (last && (Date.now() - Date.parse(last + 'T00:00:00Z')) / 86400000 > 90) return 'inactive';
+  if (['quote_auto', 'sale_auto', 'customer_record'].includes(l.leadSource)) return 'contact';
+  return 'potential';
+}
+const leadBrief = (l, sales, quotes) => clean({
   id: l.id, company: l.companyName, contact: contactName(l), phone: l.phone, email: l.email,
-  city: l.city, zip: l.zip, status: l.status, industry: l.industry, lastActivity: l.lastActivityDate,
+  city: l.city, zip: l.zip, status: sales ? contactStatus(l, sales, quotes) : undefined, industry: l.industry, lastActivity: l.lastActivityDate,
 });
 function quoteValue(q) {
   if (q.askingPrice) return q.askingPrice;
@@ -116,19 +130,19 @@ function registerTools(server, db) {
     description: 'Search Kyle\'s contacts/leads (companies and people) by name, company, phone, email, city or zip. Returns brief records with ids for get_contact.',
     inputSchema: {
       query: z.string().optional().describe('Words to match, e.g. "toyo tire" or "ronald"'),
-      status: z.string().optional().describe('Filter by status, e.g. prospect, lead, customer, active_customer'),
+      status: z.enum(['customer', 'active', 'contact', 'potential', 'inactive']).optional().describe('Pipeline status'),
       city: z.string().optional(), zip: z.string().optional(),
       limit: z.number().int().min(1).max(200).optional(),
     },
     annotations: RO,
   }, async ({ query, status, city, zip, limit = 25 }) => {
-    const leads = await S.all('leads');
+    const [leads, sales, quotes] = await Promise.all(['leads', 'sales', 'quotes'].map(n => S.all(n)));
     const hits = leads.filter(l =>
       matchesQuery(l, LEAD_FIELDS, query) &&
-      (!status || norm(l.status) === norm(status)) &&
+      (!status || contactStatus(l, sales, quotes) === status) &&
       (!city || norm(l.city) === norm(city)) &&
       (!zip || String(l.zip || '').startsWith(zip)));
-    return ok({ total: hits.length, contacts: hits.slice(0, limit).map(leadBrief) });
+    return ok({ total: hits.length, contacts: hits.slice(0, limit).map(l => leadBrief(l, sales, quotes)) });
   });
 
   server.registerTool('get_contact', {
@@ -144,7 +158,7 @@ function registerTools(server, db) {
       ['quotes', 'sales', 'equipment', 'tasks', 'visitLogs'].map(n => S.all(n)));
     const { activityLog = [], statusHistory = [], ...rest } = lead;
     return ok({
-      contact: clean(rest),
+      contact: clean({ ...rest, status: contactStatus(lead, sales, quotes), storedStatus: rest.status }),
       recentActivity: activityLog.slice(-25),
       statusHistory: statusHistory.slice(-10),
       quotes: relatedToLead(lead, quotes, 'linkedCustomerId').map(q => quoteBrief(q, today)),
@@ -295,7 +309,7 @@ function registerTools(server, db) {
     const salesYTD = sales.filter(s => ytd(s.dateSold));
     const salesMTD = sales.filter(s => String(s.dateSold || '').startsWith(month));
     const statusCounts = {};
-    for (const l of leads) statusCounts[l.status || 'none'] = (statusCounts[l.status || 'none'] || 0) + 1;
+    for (const l of leads) { const st = contactStatus(l, sales, quotes); statusCounts[st] = (statusCounts[st] || 0) + 1; }
     return ok({
       today,
       quotesByStage: byStage,

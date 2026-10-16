@@ -1676,11 +1676,11 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <input class="search-input" id="leads-search" type="text" placeholder="Search company, contact, phone, zip...">
       <select class="filter-input" id="leads-filter-status">
         <option value="">All Statuses</option>
-        <option value="prospect">Prospect</option>
-        <option value="lead">Lead</option>
         <option value="customer">Customer</option>
-        <option value="dormant">Dormant</option>
-        <option value="not_interested">Not Interested</option>
+        <option value="active">Active</option>
+        <option value="contact">Contact</option>
+        <option value="potential">Potential</option>
+        <option value="inactive">Inactive</option>
       </select>
       <select class="filter-input" id="leads-filter-industry">
         <option value="">All Industries</option>
@@ -2515,13 +2515,12 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="l-status">Status</label>
-        <select class="form-select" id="l-status">
-          <option value="prospect">Prospect</option>
-          <option value="lead">Lead</option>
-          <option value="customer">Customer</option>
-          <option value="dormant">Dormant</option>
+        <select class="form-select" id="l-status" title="Auto sets Customer / Active / Contact / Potential / Inactive from sales, open quotes and activity">
+          <option value="">Auto</option>
+          <option value="customer">Always Customer</option>
           <option value="not_interested">Not Interested</option>
         </select>
+        <div id="l-status-auto" style="font-size:11px;color:#888;margin-top:3px"></div>
       </div>
       <div class="form-group">
         <label class="form-label" for="l-salesperson">Assigned To <span class="optional">(optional)</span></label>
@@ -6195,27 +6194,36 @@ const LEAD_STATUS_LABELS = {
 const LEAD_INDUSTRY_LABELS = { warehouse:'Warehouse', manufacturing:'Manufacturing', distribution:'Distribution', food_beverage:'Food & Beverage', construction:'Construction', automotive:'Automotive', retail:'Retail', other:'Other' };
 const LEAD_SOURCE_LABELS = { territory_prospecting:'Territory Prospecting', cold_call:'Cold Call', google_search:'Google Search', referral:'Referral', trade_show:'Trade Show', linkedin:'LinkedIn', imported_list:'Imported List', quote_auto:'From Quote', sale_auto:'From Sale', customer_record:'Customer Record', uio_import:'UIO Import', aging_report_import:'Aging Report Import', other:'Other' };
 
+// Pipeline is always one of five: customer, active, contact, potential, inactive.
+// The only manual overrides are "customer" and "not interested" (→ inactive);
+// every other stored value (prospect, lead, potential_customer, contacted, …) is
+// old data and is ignored so the status is computed.
+const CONTACT_OVERRIDE_CUSTOMER = ['customer', 'active_customer'];
+const CONTACT_OVERRIDE_INACTIVE = ['not_interested', 'dormant', 'inactive_customer', 'former_customer'];
+function contactOverride(l) {
+  if (CONTACT_OVERRIDE_CUSTOMER.includes(l.status)) return 'customer';
+  if (CONTACT_OVERRIDE_INACTIVE.includes(l.status)) return 'not_interested';
+  return '';
+}
 function computeContactStatus(l) {
-  // Respect explicit manual status overrides before auto-computing
-  const manualStatuses = ['prospect', 'lead', 'customer', 'dormant', 'not_interested', 'active_customer', 'inactive_customer', 'former_customer'];
-  if (l.status && manualStatuses.includes(l.status)) return l.status;
+  const ov = contactOverride(l);
+  if (ov === 'customer') return 'customer';
+  if (ov === 'not_interested') return 'inactive';
 
   const lid = l.id;
   const name = (l.companyName || '').toLowerCase();
   // Customer: has at least one closed sale
   const hasSale = appState.sales.some(s =>
-    s.linkedCustomerId === lid || s.linkedCustomerId === l.linkedCustomerId ||
+    (lid && s.linkedCustomerId === lid) || (l.linkedCustomerId && s.linkedCustomerId === l.linkedCustomerId) ||
     (name && (s.customerName||'').toLowerCase() === name)
   );
   if (hasSale) return 'customer';
   // Active: has an open quote/deal
   const hasOpenQuote = appState.quotes.some(q =>
-    (q.linkedCustomerId === lid || (name && (q.customerName||'').toLowerCase() === name)) &&
+    ((lid && q.linkedCustomerId === lid) || (name && (q.customerName||'').toLowerCase() === name)) &&
     q.stage !== 'won' && q.stage !== 'lost'
   );
   if (hasOpenQuote) return 'active';
-  // Not interested — keep manual status
-  if (l.status === 'not_interested') return 'inactive';
   // Inactive: no activity in 90+ days
   const lastAct = l.lastActivityDate || (l.updatedAt ? l.updatedAt.slice(0,10) : null) || (l.createdAt ? l.createdAt.slice(0,10) : null);
   if (lastAct) {
@@ -6542,7 +6550,8 @@ function openLeadModal(id = null) {
   document.getElementById('l-zip').value         = l ? (l.zip || '') : '';
   document.getElementById('l-industry').value    = l ? (l.industry || '') : '';
   document.getElementById('l-source').value      = l ? (l.leadSource || 'territory_prospecting') : 'territory_prospecting';
-  document.getElementById('l-status').value      = l ? (l.status || 'prospect') : 'prospect';
+  document.getElementById('l-status').value      = l ? contactOverride(l) : '';
+  document.getElementById('l-status-auto').textContent = l ? `Currently: ${LEAD_STATUS_LABELS[computeContactStatus({ ...l, status: '' })] || '—'} (auto)` : '';
   document.getElementById('l-salesperson').value = l ? (l.salesperson || '') : (localStorage.getItem('aflRepName') || '');
   document.getElementById('l-notes').value       = l ? (l.notes || '') : '';
   document.getElementById('l-sc-firstname').value = l ? (l.sc2FirstName || '') : '';
@@ -6598,7 +6607,7 @@ function saveLead(andStartQuote = false) {
     Object.assign(l, fields);
     l.updatedAt = now;
     l.lastActivityDate = now.slice(0, 10);
-    if (oldStatus !== fields.status) {
+    if (contactOverride(l) !== fields.status) {   // only real changes, not old-value cleanup
       if (!l.statusHistory) l.statusHistory = [];
       l.statusHistory.push({ date: now, fromStatus: oldStatus, toStatus: fields.status, note: '' });
     }
