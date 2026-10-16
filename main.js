@@ -568,15 +568,34 @@ ipcMain.handle('git:status', async () => {
 
 // ── IPC: Lead Generation — Google Maps ────────────────────────────────────────
 
+// Drive times/distances via the Routes API (Distance Matrix can't be enabled on
+// new Google Cloud projects). Returns the old Distance Matrix JSON shape:
+// { status, rows: [{ elements: [{ status, distance: { value }, duration: { value } }] }] }
+async function routeMatrix(origins, destinations, apiKey) {
+  const wp = a => ({ waypoint: { address: a } });
+  const res = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition,status' },
+    body: JSON.stringify({ origins: origins.map(wp), destinations: destinations.map(wp), travelMode: 'DRIVE' }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !Array.isArray(json)) {
+    const e = (Array.isArray(json) ? json[0] : json)?.error || {};
+    return { status: e.status || `HTTP_${res.status}`, error_message: e.message || '' };
+  }
+  const rows = origins.map(() => ({ elements: destinations.map(() => ({ status: 'NOT_FOUND' })) }));
+  for (const el of json) {
+    const i = el.originIndex || 0, j = el.destinationIndex || 0;
+    if (el.condition !== 'ROUTE_EXISTS' || (el.status && el.status.code)) continue;
+    rows[i].elements[j] = { status: 'OK', distance: { value: el.distanceMeters || 0 }, duration: { value: parseInt(el.duration, 10) || 0 } };
+  }
+  return { status: 'OK', rows };
+}
+
 ipcMain.handle('leadgen:distance-matrix', async (_event, { origins, destinations, apiKey }) => {
-  try {
-    const origEnc = encodeURIComponent(origins);
-    const destEnc = destinations.map(d => encodeURIComponent(d)).join('|');
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origEnc}&destinations=${destEnc}&key=${encodeURIComponent(apiKey)}&units=imperial`;
-    const res = await fetch(url);
-    const json = await res.json();
-    return json;
-  } catch (err) { return { status: 'ERROR', error: err.message }; }
+  try { return await routeMatrix([origins], destinations, apiKey); }
+  catch (err) { return { status: 'ERROR', error: err.message }; }
 });
 
 ipcMain.handle('leadgen:geocode', async (_event, { zip, apiKey }) => {
@@ -674,7 +693,7 @@ async function testMapsKey(apiKey) {
   const checks = {
     'Places API (New)':    () => placesNew('/places:searchText', apiKey, 'places.id', { textQuery: 'warehouse Atlanta GA', pageSize: 1 }),
     'Geocoding API':       async () => { const j = await (await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=30101&key=${encodeURIComponent(apiKey)}`)).json(); if (j.status !== 'OK') throw new Error(j.error_message || j.status); },
-    'Distance Matrix API': async () => { const j = await (await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=30101&destinations=30144&key=${encodeURIComponent(apiKey)}`)).json(); if (j.status !== 'OK') throw new Error(j.error_message || j.status); },
+    'Routes API':          async () => { const j = await routeMatrix(['Acworth, GA 30101'], ['Kennesaw, GA 30144'], apiKey); if (j.status !== 'OK') throw new Error(j.error_message || j.status); },
   };
   const failed = [];
   for (const [name, fn] of Object.entries(checks)) {
@@ -695,8 +714,8 @@ ipcMain.handle('leadgen:raw-test', async (_event, apiKey) => {
   try {
     const json = await placesNew('/places:searchText', apiKey, 'places.id,places.displayName,places.formattedAddress', { textQuery: 'warehouse Atlanta GA', pageSize: 3 });
     const failed = await testMapsKey(apiKey);
-    const body = JSON.stringify({ placesSample: json, otherApis: failed.length ? failed : 'Geocoding + Distance Matrix OK' }, null, 2);
-    return { ok: true, url, status: 200, body, parsed: { status: 'OK', otherApis: failed.length ? failed : 'Geocoding + Distance Matrix OK', results: (json.places || []).map(toLegacyPlace) } };
+    const body = JSON.stringify({ placesSample: json, otherApis: failed.length ? failed : 'Geocoding + Routes OK' }, null, 2);
+    return { ok: true, url, status: 200, body, parsed: { status: 'OK', otherApis: failed.length ? failed : 'Geocoding + Routes OK', results: (json.places || []).map(toLegacyPlace) } };
   } catch (err) {
     return { ok: false, url, error: err.message };
   }
