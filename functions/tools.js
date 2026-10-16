@@ -60,7 +60,7 @@ const quoteBrief = (q, today) => clean({
   followUpDate: q.followUpDate, followUpTouches: q.followUpTouches, overdueDays: overdueDays(q, today),
   value: quoteValue(q),
   units: (q.lineItems || []).map(i => clean({ oem: i.oem, model: i.forkliftModel, qty: i.quantity, condition: i.condition, price: i.linePrice, stage: i.lineStage, alternative: i.isAlternative || null })),
-  lossReason: q.lossReason, notes: q.notes,
+  lossReason: q.lossReason, lostTo: q.lostToCompetitor, notes: q.notes,
 });
 const saleBrief = s => clean({
   id: s.id, customer: s.customerName, sold: s.dateSold, model: s.forkliftModel, qty: s.quantity,

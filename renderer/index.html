@@ -2768,11 +2768,17 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <select class="form-select" id="q-loss-reason">
         <option value="">-- Select reason --</option>
         <option value="price">Price — Too Expensive</option>
+        <option value="competitor">Lost to Competitor</option>
         <option value="no_longer_needed">No Longer Needed</option>
         <option value="timing">Bad Timing / Budget Freeze</option>
         <option value="other">Other</option>
       </select>
     </div>
+    <div class="form-group" id="q-loss-competitor-wrap" style="display:none">
+      <label class="form-label" for="q-loss-competitor">Competitor <span class="optional">(optional)</span></label>
+      <input class="form-input" id="q-loss-competitor" type="text" list="competitor-list" placeholder="e.g. Crown, Hyster-Yale, Raymond">
+    </div>
+    <datalist id="competitor-list"></datalist>
     <div class="form-group">
       <label class="form-label" for="q-notes">Notes <span class="optional">(optional)</span></label>
       <textarea class="form-textarea" id="q-notes" rows="3" placeholder="Customer details, special requirements, follow-up info..."></textarea>
@@ -3121,10 +3127,15 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <select class="form-select" id="loss-reason-sel">
         <option value="">-- Select reason --</option>
         <option value="price">Price — Too Expensive</option>
+        <option value="competitor">Lost to Competitor</option>
         <option value="no_longer_needed">No Longer Needed</option>
         <option value="timing">Bad Timing / Budget Freeze</option>
         <option value="other">Other</option>
       </select>
+    </div>
+    <div class="form-group" id="loss-competitor-wrap" style="display:none">
+      <label class="form-label" for="loss-competitor">Competitor <span class="optional">(optional)</span></label>
+      <input class="form-input" id="loss-competitor" type="text" list="competitor-list" placeholder="e.g. Crown, Hyster-Yale, Raymond">
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" id="cancel-loss">Cancel</button>
@@ -4249,6 +4260,9 @@ function openQuoteModal(id = null) {
   document.getElementById('q-stage').value = qStage;
   document.getElementById('q-loss-reason-wrap').style.display = qStage === 'lost' ? 'block' : 'none';
   document.getElementById('q-loss-reason').value = q ? (q.lossReason || '') : '';
+  document.getElementById('q-loss-competitor').value = q ? (q.lostToCompetitor || '') : '';
+  if (qStage === 'lost') syncCompetitorField('q-loss-reason', 'q-loss-competitor-wrap');
+  else document.getElementById('q-loss-competitor-wrap').style.display = 'none';
   const qCtype = q ? (q.customerType || 'new') : 'new';
   document.querySelector(`input[name="q-ctype"][value="${qCtype}"]`).checked = true;
   document.getElementById('q-last-purchase-wrap').classList.toggle('show', qCtype === 'existing');
@@ -4303,6 +4317,8 @@ function saveQuote() {
     followUpDate: document.getElementById('q-followup-date').value || null,
     stage: newStage,
     lossReason: newStage === 'lost' ? document.getElementById('q-loss-reason').value : null,
+    lostToCompetitor: newStage === 'lost' && document.getElementById('q-loss-reason').value === 'competitor'
+      ? (document.getElementById('q-loss-competitor').value.trim() || null) : null,
     replacingUnitId: document.getElementById('q-replacing-unit')?.value || null,
   };
   const prevStage = editingQuoteId ? (appState.quotes.find(x => x.id === editingQuoteId)?.stage || 'quoted') : null;
@@ -5718,7 +5734,20 @@ function selectCustomer(c) {
 // PIPELINE
 // ══════════════════════════════════════════════════════════════════════════════
 const STAGE_LABELS = { quoted: 'Quoted', followup: 'Follow-Up', won: 'Won', lost: 'Lost' };
-const LOSS_LABELS  = { price: 'Price', no_longer_needed: 'No Longer Needed', timing: 'Budget Freeze', other: 'Other' };
+const LOSS_LABELS  = { price: 'Price', competitor: 'Lost to Competitor', no_longer_needed: 'No Longer Needed', timing: 'Budget Freeze', other: 'Other' };
+function lossLabel(q) {
+  const base = LOSS_LABELS[q.lossReason] || q.lossReason || '';
+  return q.lossReason === 'competitor' && q.lostToCompetitor ? `${base} — ${q.lostToCompetitor}` : base;
+}
+// Show the competitor box only when "Lost to Competitor" is picked; suggest names already used
+function syncCompetitorField(selId, wrapId) {
+  const show = document.getElementById(selId).value === 'competitor';
+  document.getElementById(wrapId).style.display = show ? 'block' : 'none';
+  if (show) {
+    const names = [...new Set(appState.quotes.map(q => q.lostToCompetitor).filter(Boolean))].sort();
+    document.getElementById('competitor-list').innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+  }
+}
 let pendingLossQuoteId = null;
 
 function renderPipeline() {
@@ -5799,7 +5828,7 @@ function renderPipeline() {
           ${overdueHtml}${outcomeHtml}
           ${fuBadgeHtml}
           ${stale ? `<span class="badge stale-quote" title="No touch in ${_STALE_DAYS}+ days">Stale — close out or snooze?</span>` : ''}
-          ${stage === 'lost' && q.lossReason ? `<span style="color:#9e9e9e;font-size:11px">${LOSS_LABELS[q.lossReason] || q.lossReason}</span>` : ''}
+          ${stage === 'lost' && q.lossReason ? `<span style="color:#9e9e9e;font-size:11px">${esc(lossLabel(q))}</span>` : ''}
         </div>
         <div class="pc-actions">
           <button class="btn-icon" data-id="${q.id}" data-action="edit-quote" style="flex:1">Edit</button>
@@ -5843,6 +5872,8 @@ function pipelineAction(id, action) {
   } else if (action === 'pl-lost') {
     pendingLossQuoteId = id;
     document.getElementById('loss-reason-sel').value = q.lossReason || '';
+    document.getElementById('loss-competitor').value = q.lostToCompetitor || '';
+    syncCompetitorField('loss-reason-sel', 'loss-competitor-wrap');
     document.getElementById('overlay-loss').classList.add('open');
   }
 }
@@ -5874,6 +5905,7 @@ function confirmLoss() {
     const now = new Date().toISOString();
     q.stage = 'lost';
     q.lossReason = document.getElementById('loss-reason-sel').value || null;
+    q.lostToCompetitor = q.lossReason === 'competitor' ? (document.getElementById('loss-competitor').value.trim() || null) : null;
     if (!q.lostAt) q.lostAt = now;
     q.updatedAt = now;
     saveData();
@@ -8063,7 +8095,11 @@ document.querySelectorAll('input[name="cs-saletype"]').forEach(radio => {
 // Stage dropdown → show/hide loss reason
 document.getElementById('q-stage').addEventListener('change', function () {
   document.getElementById('q-loss-reason-wrap').style.display = this.value === 'lost' ? 'block' : 'none';
+  if (this.value === 'lost') syncCompetitorField('q-loss-reason', 'q-loss-competitor-wrap');
+  else document.getElementById('q-loss-competitor-wrap').style.display = 'none';
 });
+document.getElementById('q-loss-reason').addEventListener('change', () => syncCompetitorField('q-loss-reason', 'q-loss-competitor-wrap'));
+document.getElementById('loss-reason-sel').addEventListener('change', () => syncCompetitorField('loss-reason-sel', 'loss-competitor-wrap'));
 
 // Deals tab action delegation (kanban cards + list rows)
 document.getElementById('tab-deals').addEventListener('click', e => {
