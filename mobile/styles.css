@@ -191,6 +191,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .badge-won      { background: #1e3200; color: #81c784; }
 .badge-lost     { background: #2e2e2e; color: #888; }
 .badge-contact  { background: #1a3350; color: #7cb0ff; }
+.badge-customer  { background: #4a0000; color: #ff8a80; }
+.badge-potential { background: #3a1028; color: #f48fb1; }
+.badge-inactive  { background: #2a2a2a; color: #9e9e9e; }
 .badge-lead     { background: #3d2200; color: #ffb74d; }
 .badge-active   { background: #1e3200; color: #81c784; }
 
