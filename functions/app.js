@@ -8,7 +8,7 @@ const { registerTools } = require('./tools');
 const INSTRUCTIONS = `This is Kyle Waite's AFL Sales Tracker (Atlanta Fork Lifts, Toyota Material Handling sales, NW Metro Atlanta).
 Contacts are "leads"; quotes move through stages quoted → followup → won/lost; a follow-up is overdue 14+ days past its follow-up date.
 Find ids with search_contacts before using get_contact or any write tool. Dates are YYYY-MM-DD in Eastern time.
-Writes are limited to tasks, contact activity notes and visit logs; nothing can be deleted.`;
+Writes are limited to tasks, contact activity notes, visit logs, and quote follow-ups/snoozes/outcomes; nothing can be deleted.`;
 
 function createHandler({ db, fetchFn }) {
   const oauth = createOAuth({ db, fetchFn });
