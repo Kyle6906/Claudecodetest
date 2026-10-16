@@ -1,5 +1,5 @@
 // MCP tools for the AFL Sales Tracker connector (v1).
-// Reads: everything. Writes: tasks, contact activity notes, visit logs. No deletes.
+// Reads: everything. Writes: tasks, contact activity notes, visit logs, quote follow-ups/stage. No deletes.
 'use strict';
 
 const { z } = require('zod');
@@ -11,6 +11,10 @@ const VISIT_OUTCOMES = [
   'No contact — left materials', 'Follow-up scheduled', 'Closed deal', 'Other',
 ];
 const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+// Same follow-up cadence as the desktop app: days until the next touch is due
+const FU_GAPS = { 1: 8, 2: 8, 3: 14, 4: 30 };
+const FU_AFTER_LAST = 30;
+const LOSS_REASONS = ['price', 'competitor', 'no_longer_needed', 'timing', 'other'];
 
 const genId = p => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 const todayNY = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
@@ -349,6 +353,94 @@ function registerTools(server, db) {
     await ref.set(updated);
     S.invalidate('tasks');
     return ok({ completed: taskBrief({ id: task_id, ...updated }) });
+  });
+
+  // ── Quote actions ───────────────────────────────────────────────────────────
+  async function getQuote(id) {
+    const snap = await db.collection('quotes').doc(id).get();
+    return snap.exists ? { ...snap.data(), id: snap.data().id || snap.id } : null;
+  }
+  async function saveQuote(q) {
+    q.updatedAt = new Date().toISOString();   // newest updatedAt wins when the desktop syncs
+    await db.collection('quotes').doc(q.id).set(q);
+    S.invalidate('quotes');
+    return quoteBrief(q, todayNY());
+  }
+  const isOpen = q => ['quoted', 'followup'].includes(q.stage || 'quoted');
+
+  server.registerTool('log_quote_follow_up', {
+    title: 'Log quote follow-up',
+    description: 'Record that Kyle followed up on an open quote (email, call, visit or text). Logs the next touch, moves Quoted → Follow-Up, and sets the next follow-up date by the cadence (8/8/14/30 days), which clears Overdue. Find quote ids with list_quotes.',
+    inputSchema: {
+      quote_id: z.string(),
+      method: z.enum(['email', 'call', 'visit', 'text']).optional(),
+      note: z.string().max(1000).optional().describe('What happened, e.g. "Left VM, budget review in Nov"'),
+    },
+    annotations: WR,
+  }, async ({ quote_id, method = 'call', note }) => {
+    const q = await getQuote(quote_id);
+    if (!q) return fail(`No quote with id ${quote_id}.`);
+    if (!isOpen(q)) return fail(`Quote for ${q.customerName} is ${q.stage}; reopen it first.`);
+    const now = new Date().toISOString();
+    const touches = (q.followUpTouches || []).slice();
+    const touch = [1, 2, 3, 4].find(t => !touches.some(x => x.touch === t)) || null;
+    if (touch) touches.push(clean({ touch, sentAt: now, method, note, source: 'claude' }));
+    touches.sort((a, b) => (a.touch || 0) - (b.touch || 0));
+    q.followUpTouches = touches;
+    q.followUpDate = addDays(todayNY(), touch && touch < 4 ? FU_GAPS[touch + 1] : FU_AFTER_LAST);
+    q.lastTouchAt = now;
+    if ((q.stage || 'quoted') === 'quoted') q.stage = 'followup';
+    if (!touch && note) q.notes = [q.notes, `${todayNY()} ${method}: ${note}`].filter(Boolean).join('\n');
+    return ok({ logged: { touch: touch || 'all 4 touches already sent', method, note }, nextFollowUp: q.followUpDate, quote: await saveQuote(q) });
+  });
+
+  server.registerTool('snooze_quote', {
+    title: 'Snooze quote',
+    description: 'Push an open quote\'s next follow-up date out (e.g. "check back in 2 weeks"). Give days or a date. Clears Overdue and pauses touch reminders until then.',
+    inputSchema: {
+      quote_id: z.string(),
+      days: z.number().int().min(1).max(365).optional(),
+      until: DATE.optional(),
+    },
+    annotations: { ...WR, idempotentHint: true },
+  }, async ({ quote_id, days, until }) => {
+    if (!days && !until) return fail('Give days or until.');
+    const q = await getQuote(quote_id);
+    if (!q) return fail(`No quote with id ${quote_id}.`);
+    if (!isOpen(q)) return fail(`Quote for ${q.customerName} is ${q.stage}; only open quotes can be snoozed.`);
+    const date = until || addDays(todayNY(), days);
+    if (date <= todayNY()) return fail('Snooze date must be in the future.');
+    q.followUpDate = date;
+    q.lastTouchAt = new Date().toISOString();
+    return ok({ snoozedUntil: date, quote: await saveQuote(q) });
+  });
+
+  server.registerTool('set_quote_outcome', {
+    title: 'Set quote outcome',
+    description: 'Mark a quote won or lost, or reopen it. Lost takes a reason (price, competitor, no_longer_needed, timing, other) and, for competitor, the competitor name. Converting a won quote to a sale is still done in the app.',
+    inputSchema: {
+      quote_id: z.string(),
+      outcome: z.enum(['won', 'lost', 'reopen']),
+      loss_reason: z.enum(LOSS_REASONS).optional(),
+      competitor: z.string().max(100).optional().describe('Who it was lost to, e.g. Crown'),
+    },
+    annotations: WR,
+  }, async ({ quote_id, outcome, loss_reason, competitor }) => {
+    const q = await getQuote(quote_id);
+    if (!q) return fail(`No quote with id ${quote_id}.`);
+    const now = new Date().toISOString();
+    if (outcome === 'won') {
+      q.stage = 'won'; if (!q.wonAt) q.wonAt = now;
+    } else if (outcome === 'lost') {
+      const reason = loss_reason || (competitor ? 'competitor' : null);
+      q.stage = 'lost'; if (!q.lostAt) q.lostAt = now;
+      q.lossReason = reason;
+      q.lostToCompetitor = reason === 'competitor' ? (competitor || null) : null;
+    } else {
+      q.stage = 'quoted'; q.wonAt = null; q.lostAt = null; q.lossReason = null; q.lostToCompetitor = null;
+    }
+    const brief = await saveQuote(q);
+    return ok({ outcome, quote: brief, next: outcome === 'won' ? 'Open the quote in the app and click Convert to Sale to record the sale.' : undefined });
   });
 
   server.registerTool('log_contact_activity', {
