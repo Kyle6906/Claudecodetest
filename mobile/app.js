@@ -667,8 +667,20 @@ async function saveContactNote() {
 // ── Tasks Tab ─────────────────────────────────────────────────────────────────
 let _tasksRendered = false;
 
+// Date a task was entered: createdAt, or the timestamp baked into its id (t_<ms>_xxxxx)
+function taskEnteredLabel(t) {
+  let ms = t.createdAt ? Date.parse(t.createdAt) : NaN;
+  if (isNaN(ms)) { const m = /^t_(\d{12,})_/.exec(t.id || ''); if (m) ms = Number(m[1]); }
+  if (isNaN(ms)) return '';
+  const d = new Date(ms);
+  const opts = { month: 'short', day: 'numeric' };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  return 'Entered ' + d.toLocaleDateString('en-US', opts);
+}
+
 function taskItemHtml(t) {
   const done = !!t.completedAt || !!t.completed;
+  const enteredLabel = taskEnteredLabel(t);
   const dueLabel = t.dueDate ? `Due ${fmt(t.dueDate)}` : '';
   const linkedName = t.linkedName || (t.linkedContactId ? appData.leads.find(l => l.id === t.linkedContactId)?.companyName : null);
   return `<div class="task-item${done ? ' completed' : ''}" data-task-id="${esc(t.id)}">
@@ -676,6 +688,7 @@ function taskItemHtml(t) {
     <div class="task-body">
       <div class="task-title${done ? ' checked' : ''}">${esc(t.title)}</div>
       <div class="task-meta">
+        ${enteredLabel ? `<span class="task-entered">${esc(enteredLabel)}</span>` : ''}
         ${dueLabel ? `<span class="task-due">${esc(dueLabel)}</span>` : ''}
         ${linkedName ? `<span class="task-linked">${esc(linkedName)}</span>` : ''}
       </div>

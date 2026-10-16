@@ -360,6 +360,7 @@ a.info-value { color: #7cb0ff; text-decoration: none; }
 .task-title.checked { text-decoration: line-through; color: var(--text3); }
 .task-meta { font-size: 12px; color: var(--text2); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
 .task-due { color: var(--text2); }
+.task-entered { color: var(--text2); opacity: 0.8; }
 .task-linked { color: #7cb0ff; }
 .task-notes { font-size: 12px; color: var(--text3); margin-top: 4px; white-space: pre-wrap; }
 
