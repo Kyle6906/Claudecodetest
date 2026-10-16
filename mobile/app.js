@@ -1571,14 +1571,35 @@ async function mobileOptimizeRoute() {
   }
 }
 
+// Drive times/distances via the Routes API (Distance Matrix can't be enabled on
+// new Google Cloud projects). Returns the old Distance Matrix JSON shape:
+// { status, rows: [{ elements: [{ status, distance: { value }, duration: { value } }] }] }
+async function routeMatrix(origins, destinations, apiKey) {
+  const wp = a => ({ waypoint: { address: a } });
+  const res = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition,status' },
+    body: JSON.stringify({ origins: origins.map(wp), destinations: destinations.map(wp), travelMode: 'DRIVE' }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !Array.isArray(json)) {
+    const e = (Array.isArray(json) ? json[0] : json)?.error || {};
+    return { status: e.status || `HTTP_${res.status}`, error_message: e.message || '' };
+  }
+  const rows = origins.map(() => ({ elements: destinations.map(() => ({ status: 'NOT_FOUND' })) }));
+  for (const el of json) {
+    const i = el.originIndex || 0, j = el.destinationIndex || 0;
+    if (el.condition !== 'ROUTE_EXISTS' || (el.status && el.status.code)) continue;
+    rows[i].elements[j] = { status: 'OK', distance: { value: el.distanceMeters || 0 }, duration: { value: parseInt(el.duration, 10) || 0 } };
+  }
+  return { status: 'OK', rows };
+}
+
 async function _mobileOptimizeDistMatrix(homeAddr, stops, stopAddrs, apiKey) {
   try {
     const allAddrs = [homeAddr, ...stopAddrs, homeAddr];
-    const origins    = encodeURIComponent(allAddrs.slice(0, -1).join('|'));
-    const dests      = encodeURIComponent(allAddrs.slice(1).join('|'));
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origins}&destinations=${dests}&key=${encodeURIComponent(apiKey)}&units=imperial`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+    const data = await routeMatrix(allAddrs.slice(0, -1), allAddrs.slice(1), apiKey);
     console.log('[DL] DistMatrix status:', data.status, 'rows:', data.rows?.length);
     if (data.status !== 'OK') return false;
     const n = stops.length;
@@ -1758,6 +1779,20 @@ function _mobileWireCompanyAutocomplete(inputId) {
   });
 }
 
+// Address suggestions via Places API (New); same shape as the old API ({ description }).
+async function _mobileAddressSuggestions(input, apiKey) {
+  const call = body => fetch('https://places.googleapis.com/v1/places:autocomplete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text.text' },
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+  let json = await call({ input, includedRegionCodes: ['us'], includedPrimaryTypes: ['street_address', 'premise', 'subpremise', 'route'] });
+  if (json.error) json = await call({ input, includedRegionCodes: ['us'] });
+  return (json.suggestions || []).map(x => x.placePrediction).filter(Boolean)
+    .map(p => ({ description: p.text?.text || '', place_id: p.placeId }));
+}
+
 async function _mobileWireAddressAutocomplete(inputId) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -1771,8 +1806,7 @@ async function _mobileWireAddressAutocomplete(inputId) {
     if (q.length < 3) return;
     debTimer = setTimeout(async () => {
       try {
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(q)}&types=address&components=country:us&key=${encodeURIComponent(apiKey)}`;
-        const data = await (await fetch(url)).json();
+        const data = { predictions: await _mobileAddressSuggestions(q, apiKey) };
         if (!data.predictions?.length) return;
         if (dropdown) { dropdown.remove(); dropdown = null; }
         dropdown = document.createElement('div');

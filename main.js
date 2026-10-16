@@ -568,15 +568,34 @@ ipcMain.handle('git:status', async () => {
 
 // ── IPC: Lead Generation — Google Maps ────────────────────────────────────────
 
+// Drive times/distances via the Routes API (Distance Matrix can't be enabled on
+// new Google Cloud projects). Returns the old Distance Matrix JSON shape:
+// { status, rows: [{ elements: [{ status, distance: { value }, duration: { value } }] }] }
+async function routeMatrix(origins, destinations, apiKey) {
+  const wp = a => ({ waypoint: { address: a } });
+  const res = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition,status' },
+    body: JSON.stringify({ origins: origins.map(wp), destinations: destinations.map(wp), travelMode: 'DRIVE' }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !Array.isArray(json)) {
+    const e = (Array.isArray(json) ? json[0] : json)?.error || {};
+    return { status: e.status || `HTTP_${res.status}`, error_message: e.message || '' };
+  }
+  const rows = origins.map(() => ({ elements: destinations.map(() => ({ status: 'NOT_FOUND' })) }));
+  for (const el of json) {
+    const i = el.originIndex || 0, j = el.destinationIndex || 0;
+    if (el.condition !== 'ROUTE_EXISTS' || (el.status && el.status.code)) continue;
+    rows[i].elements[j] = { status: 'OK', distance: { value: el.distanceMeters || 0 }, duration: { value: parseInt(el.duration, 10) || 0 } };
+  }
+  return { status: 'OK', rows };
+}
+
 ipcMain.handle('leadgen:distance-matrix', async (_event, { origins, destinations, apiKey }) => {
-  try {
-    const origEnc = encodeURIComponent(origins);
-    const destEnc = destinations.map(d => encodeURIComponent(d)).join('|');
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origEnc}&destinations=${destEnc}&key=${encodeURIComponent(apiKey)}&units=imperial`;
-    const res = await fetch(url);
-    const json = await res.json();
-    return json;
-  } catch (err) { return { status: 'ERROR', error: err.message }; }
+  try { return await routeMatrix([origins], destinations, apiKey); }
+  catch (err) { return { status: 'ERROR', error: err.message }; }
 });
 
 ipcMain.handle('leadgen:geocode', async (_event, { zip, apiKey }) => {
@@ -591,31 +610,47 @@ ipcMain.handle('leadgen:geocode', async (_event, { zip, apiKey }) => {
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
+// ── Google Places API (New) ── the original Places API can't be enabled on new
+// Google Cloud projects, so search/details/autocomplete use places.googleapis.com.
+// Results are mapped back to the old field names the rest of the app expects.
+const PLACES_NEW = 'https://places.googleapis.com/v1';
+async function placesNew(path, apiKey, fieldMask, body) {
+  const res = await fetch(`${PLACES_NEW}${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': fieldMask },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error?.message || json.error?.status || `HTTP ${res.status}`);
+  return json;
+}
+const toLegacyPlace = p => ({
+  place_id: p.id,
+  name: p.displayName?.text || '',
+  formatted_address: p.formattedAddress || '',
+  geometry: p.location ? { location: { lat: p.location.latitude, lng: p.location.longitude } } : undefined,
+  rating: p.rating,
+  user_ratings_total: p.userRatingCount,
+  business_status: p.businessStatus,
+  types: p.types || [],
+  formatted_phone_number: p.nationalPhoneNumber,
+  website: p.websiteUri,
+});
+
 ipcMain.handle('leadgen:maps-search', async (_event, { apiKey, query, pageToken }) => {
   try {
-    let url;
-    if (pageToken) {
-      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${encodeURIComponent(pageToken)}&key=${encodeURIComponent(apiKey)}`;
-    } else {
-      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
-    }
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS')
-      return { ok: false, error: `Places search failed: ${json.status}${json.error_message ? ' — ' + json.error_message : ''}` };
-    return { ok: true, results: json.results || [], nextPageToken: json.next_page_token || null };
-  } catch (err) { return { ok: false, error: err.message }; }
+    const mask = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.businessStatus,places.types,nextPageToken';
+    const json = await placesNew('/places:searchText', apiKey, mask, pageToken ? { textQuery: query, pageToken } : { textQuery: query });
+    return { ok: true, results: (json.places || []).map(toLegacyPlace), nextPageToken: json.nextPageToken || null };
+  } catch (err) { return { ok: false, error: `Places search failed: ${err.message}` }; }
 });
 
 ipcMain.handle('leadgen:maps-details', async (_event, { apiKey, placeId }) => {
   try {
-    const fields = 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,business_status,geometry';
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=${fields}&key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.status !== 'OK') return { ok: false, error: `Place details failed: ${json.status}` };
-    return { ok: true, result: json.result };
-  } catch (err) { return { ok: false, error: err.message }; }
+    const mask = 'id,displayName,formattedAddress,nationalPhoneNumber,websiteUri,rating,userRatingCount,businessStatus,location';
+    const json = await placesNew(`/places/${encodeURIComponent(placeId)}`, apiKey, mask);
+    return { ok: true, result: toLegacyPlace(json) };
+  } catch (err) { return { ok: false, error: `Place details failed: ${err.message}` }; }
 });
 
 ipcMain.handle('leadgen:geocode-address', async (_event, { address, apiKey }) => {
@@ -631,37 +666,58 @@ ipcMain.handle('leadgen:geocode-address', async (_event, { address, apiKey }) =>
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
+// Address suggestions (Autocomplete New). Address types first; if Google rejects
+// the type filter, retry unfiltered.
+async function addressAutocomplete(input, apiKey) {
+  const mask = 'suggestions.placePrediction.placeId,suggestions.placePrediction.text.text';
+  let json;
+  try {
+    json = await placesNew('/places:autocomplete', apiKey, mask,
+      { input, includedRegionCodes: ['us'], includedPrimaryTypes: ['street_address', 'premise', 'subpremise', 'route'] });
+  } catch (err) {
+    if (!/type|INVALID/i.test(err.message)) throw err;
+    json = await placesNew('/places:autocomplete', apiKey, mask, { input, includedRegionCodes: ['us'] });
+  }
+  return (json.suggestions || []).map(x => x.placePrediction).filter(Boolean)
+    .map(p => ({ description: p.text?.text || '', placeId: p.placeId }));
+}
+
 ipcMain.handle('leadgen:places-autocomplete', async (_event, { input, apiKey }) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=address&components=country:us&key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS')
-      return { ok: false, error: `Autocomplete: ${json.status}${json.error_message ? ' — ' + json.error_message : ''}` };
-    return { ok: true, predictions: (json.predictions || []).map(p => ({ description: p.description, placeId: p.place_id })) };
-  } catch (err) { return { ok: false, error: err.message }; }
+    return { ok: true, predictions: await addressAutocomplete(input, apiKey) };
+  } catch (err) { return { ok: false, error: `Autocomplete: ${err.message}` }; }
 });
+
+// Key test checks every Google API the app uses, so a missing one is named.
+async function testMapsKey(apiKey) {
+  const checks = {
+    'Places API (New)':    () => placesNew('/places:searchText', apiKey, 'places.id', { textQuery: 'warehouse Atlanta GA', pageSize: 1 }),
+    'Geocoding API':       async () => { const j = await (await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=30101&key=${encodeURIComponent(apiKey)}`)).json(); if (j.status !== 'OK') throw new Error(j.error_message || j.status); },
+    'Routes API':          async () => { const j = await routeMatrix(['Acworth, GA 30101'], ['Kennesaw, GA 30144'], apiKey); if (j.status !== 'OK') throw new Error(j.error_message || j.status); },
+  };
+  const failed = [];
+  for (const [name, fn] of Object.entries(checks)) {
+    try { await fn(); } catch (err) { failed.push(`${name}: ${err.message}`); }
+  }
+  return failed;
+}
 
 ipcMain.handle('leadgen:test-maps-key', async (_event, apiKey) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.status === 'OK' || json.status === 'ZERO_RESULTS') return { ok: true };
-    return { ok: false, error: json.error_message || json.status };
+    const failed = await testMapsKey(apiKey);
+    return failed.length ? { ok: false, error: failed.join(' | ') } : { ok: true };
   } catch (err) { return { ok: false, error: err.message }; }
 });
 
 ipcMain.handle('leadgen:raw-test', async (_event, apiKey) => {
-  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=${encodeURIComponent(apiKey)}`;
+  const url = `${PLACES_NEW}/places:searchText (textQuery: warehouse Atlanta GA)`;
   try {
-    const res = await fetch(url);
-    const text = await res.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch {}
-    return { ok: true, url: url.replace(encodeURIComponent(apiKey), '***KEY***'), status: res.status, body: text, parsed };
+    const json = await placesNew('/places:searchText', apiKey, 'places.id,places.displayName,places.formattedAddress', { textQuery: 'warehouse Atlanta GA', pageSize: 3 });
+    const failed = await testMapsKey(apiKey);
+    const body = JSON.stringify({ placesSample: json, otherApis: failed.length ? failed : 'Geocoding + Routes OK' }, null, 2);
+    return { ok: true, url, status: 200, body, parsed: { status: 'OK', otherApis: failed.length ? failed : 'Geocoding + Routes OK', results: (json.places || []).map(toLegacyPlace) } };
   } catch (err) {
-    return { ok: false, url: url.replace(encodeURIComponent(apiKey), '***KEY***'), error: err.message };
+    return { ok: false, url, error: err.message };
   }
 });
 
