@@ -1837,6 +1837,11 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <button class="btn-save" style="background:#1a3a7a" onclick="backupNowFromBanner()">⬆ Back Up Now</button>
       </div>
     </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Old-List Contact Backfill</div>
+      <p style="font-size:13px;color:#666;margin:0 0 14px">One-time import from <b>data/old-list-backfill.json</b>. Fills blank name, email, address and notes fields on matching contacts. Never overwrites existing values. You'll see a preview before anything is saved.</p>
+      <button class="btn-save" onclick="openOldListImport()">Import Old-List Contacts</button>
+    </div>
 
     <div class="settings-section">
       <div class="settings-section-title">Startup &amp; System</div>
@@ -2263,6 +2268,18 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div class="modal-footer">
       <button class="btn-cancel" id="import-leads-summary-close">Close</button>
       <button class="btn-save" id="import-leads-download-skipped" style="display:none;background:#555">Download Skipped Rows</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Old-List Contact Backfill Preview ──────────────────────────── -->
+<div class="modal-overlay" id="overlay-oldlist-import">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Import Old-List Contacts: Preview</div>
+    <div id="oldlist-import-body" style="font-size:13px;color:#333"></div>
+    <div class="modal-footer" style="gap:8px;justify-content:flex-end">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-oldlist-import').classList.remove('open')">Cancel</button>
+      <button class="btn-save" id="oldlist-import-apply" onclick="applyOldListImport()">Apply</button>
     </div>
   </div>
 </div>
@@ -6657,6 +6674,108 @@ function saveLead(andStartQuote = false) {
       : appState.leads[appState.leads.length - 1];
     if (savedLead) setTimeout(() => startQuoteFromLead(savedLead.id), 200);
   }
+}
+
+// ── One-time Old-List contact backfill ───────────────────────────────────────
+// Fills BLANK fields only on existing leads; never creates, deletes or overwrites.
+let _oldListPlan = null;
+
+function _planOldListBackfill(records, leads) {
+  const norm  = s => String(s || '').trim().toLowerCase();
+  const zip5  = s => String(s || '').trim().slice(0, 5);
+  const blank = v => !String(v ?? '').trim();
+  const byName = new Map();
+  leads.forEach(l => {
+    const k = norm(l.companyName);
+    if (k) (byName.get(k) || byName.set(k, []).get(k)).push(l);
+  });
+
+  const changes = new Map();   // leadId → { lead, fields: {field: value} }
+  const counts = { name: 0, email: 0, address: 0, notes: 0 };
+  const unmatched = [];
+  const matchedIds = new Set();
+
+  for (const r of records) {
+    let hits = byName.get(norm(r.companyName)) || [];
+    if (hits.length > 1 && zip5(r.zip)) hits = hits.filter(l => zip5(l.zip) === zip5(r.zip));
+    if (!hits.length) { unmatched.push(r); continue; }
+
+    for (const l of hits) {
+      matchedIds.add(l.id);
+      const entry = changes.get(l.id) || { lead: l, fields: {} };
+      // Current value = pending fill from an earlier record, else the lead's own value
+      const cur = f => entry.fields[f] ?? l[f];
+      const fill = (field, value, group) => {
+        value = String(value ?? '').trim();
+        if (value && blank(cur(field))) { entry.fields[field] = value; counts[group]++; }
+      };
+      // Names only when the lead has no name at all, so two different people's names never get mixed
+      if (blank(cur('firstName')) && blank(cur('lastName')) && blank(cur('contactName'))) {
+        fill('firstName', r.firstName, 'name');
+        fill('lastName',  r.lastName,  'name');
+        fill('contactName', r.contactName || [r.firstName, r.lastName].map(s => String(s || '').trim()).filter(Boolean).join(' '), 'name');
+      }
+      fill('email',  r.email,  'email');
+      fill('street', r.street, 'address');
+      fill('city',   r.city,   'address');
+      const title = String(r.title || '').trim(), oldNotes = String(r.oldNotes || '').trim();
+      if (title || oldNotes) {
+        fill('notes', 'Old list - ' + [title && `Title: ${title}.`, oldNotes].filter(Boolean).join(' '), 'notes');
+      }
+      if (Object.keys(entry.fields).length) changes.set(l.id, entry);
+    }
+  }
+  return { total: records.length, matched: matchedIds.size, changes, counts, unmatched };
+}
+
+async function openOldListImport() {
+  const res = await window.aflAPI.readOldListBackfill();
+  if (!res?.ok) { toast(res?.error || 'Could not read old-list file', 'error'); return; }
+  const plan = _oldListPlan = _planOldListBackfill(res.records, appState.leads || []);
+  const c = plan.counts, totalFields = c.name + c.email + c.address + c.notes;
+  const unmatchedHtml = plan.unmatched.length
+    ? `<div style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:6px;padding:6px 10px;font-size:12px;color:#555">
+        ${plan.unmatched.map(r => `<div>${esc(r.companyName || '(no company name)')}${r.zip ? ` <span style="color:#999">(${esc(r.zip)})</span>` : ''}</div>`).join('')}
+      </div>`
+    : '<div style="color:#2e7d32">None, every record matched a contact.</div>';
+  document.getElementById('oldlist-import-body').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr><td>Records in file</td><td style="text-align:right;font-weight:700">${plan.total}</td></tr>
+      <tr><td>Contacts matched</td><td style="text-align:right;font-weight:700">${plan.matched}</td></tr>
+      <tr><td>Contacts that will change</td><td style="text-align:right;font-weight:700">${plan.changes.size}</td></tr>
+      <tr><td>Fields to fill</td><td style="text-align:right;font-weight:700">${totalFields}</td></tr>
+      <tr><td style="padding-left:16px;color:#666">Name (first / last / contact name)</td><td style="text-align:right">${c.name}</td></tr>
+      <tr><td style="padding-left:16px;color:#666">Email</td><td style="text-align:right">${c.email}</td></tr>
+      <tr><td style="padding-left:16px;color:#666">Address (street / city)</td><td style="text-align:right">${c.address}</td></tr>
+      <tr><td style="padding-left:16px;color:#666">Notes</td><td style="text-align:right">${c.notes}</td></tr>
+    </table>
+    <div style="font-weight:600;margin-bottom:6px">Records with no matching contact (${plan.unmatched.length})</div>
+    ${unmatchedHtml}`;
+  document.getElementById('oldlist-import-apply').disabled = plan.changes.size === 0;
+  document.getElementById('overlay-oldlist-import').classList.add('open');
+}
+
+function applyOldListImport() {
+  const plan = _oldListPlan;
+  if (!plan || !plan.changes.size) return;
+  const now = new Date().toISOString();
+  for (const { lead, fields } of plan.changes.values()) {
+    Object.assign(lead, fields);
+    lead.updatedAt = now;
+    console.log(`[OldList] Updated ${lead.companyName}: filled ${Object.keys(fields).join(', ')}`);
+    if (window.db && window._fs) {
+      const { doc: fsDoc, setDoc: fsSet } = window._fs;
+      fsSet(fsDoc(window.db, 'leads', lead.id), lead)
+        .then(() => console.log('[OldList] Firestore save OK — id:', lead.id))
+        .catch(err => console.error('[OldList] Firestore save error:', err));
+    }
+  }
+  saveData();
+  _oldListPlan = null;
+  document.getElementById('overlay-oldlist-import').classList.remove('open');
+  if (activeTab === 'leads') renderLeads();
+  const c = plan.counts;
+  toast(`Old list: updated ${plan.changes.size} contacts, ${c.name + c.email + c.address + c.notes} fields (${c.name} name, ${c.email} email, ${c.address} address, ${c.notes} notes)`);
 }
 
 function deleteLead(id, btn) {

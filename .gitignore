@@ -38,3 +38,6 @@ npm-debug.log*
 *.pkg
 .firebase/
 *.lnk
+
+# One-time backfill file with customer contact info (public repo: never commit)
+data/old-list-backfill.json

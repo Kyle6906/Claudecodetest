@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('aflAPI', {
   // Data
   readData:         ()                      => ipcRenderer.invoke('data:read'),
   writeData:        (data)                  => ipcRenderer.invoke('data:write', data),
+  readOldListBackfill: ()                   => ipcRenderer.invoke('data:read-old-list'),
   // Dialogs / Excel
   openExcel:        ()                      => ipcRenderer.invoke('dialog:openExcel'),
   parseExcel:       (filePath)              => ipcRenderer.invoke('excel:parse', filePath),

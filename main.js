@@ -193,6 +193,21 @@ ipcMain.handle('data:read', () => {
   } catch { return null; }
 });
 
+// ── IPC: Read one-time old-list backfill file (gitignored) ───────────────────
+
+ipcMain.handle('data:read-old-list', () => {
+  const file = path.join(DATA_DIR, 'old-list-backfill.json');
+  try {
+    if (!fs.existsSync(file)) return { ok: false, error: `File not found: ${file}` };
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const records = Array.isArray(parsed) ? parsed : (parsed.records || parsed.leads || []);
+    if (!Array.isArray(records)) return { ok: false, error: 'Expected a JSON array of records' };
+    return { ok: true, records, path: file };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 // ── IPC: Write data (atomic) ──────────────────────────────────────────────────
 
 ipcMain.handle('data:write', (_event, data) => {
