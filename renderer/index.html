@@ -1098,6 +1098,10 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .pc-followup.overdue { color: #c62828; font-weight: 600; }
 .pc-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
 .pc-actions .btn-icon { font-size: 11px; padding: 3px 8px; }
+.snooze-group { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #888; }
+.snooze-group .snooze-btn { font-size: 11px; padding: 2px 6px; }
+.followup-quick { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.badge.stale-quote { background: #fff3e0; color: #e65100; margin-top: 3px; }
 
 /* ── Pipeline stat row ───────────────────────────────────────────────────── */
 .pipeline-stats {
@@ -5061,11 +5065,34 @@ function updateOverdueBadge() {
 
 // Days required between each touch (from previous event)
 const _FU_GAPS = { 1: 8, 2: 8, 3: 14, 4: 30 };
+const _FU_AFTER_LAST = 30;   // after touch 4, check back in 30 days
+const _STALE_DAYS = 90;      // open this long with no touch/snooze → "close out?" flag
+
+// Local (Eastern) YYYY-MM-DD, n days from today
+function localDateISO(offsetDays = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Open quote with no touch, snooze or edit in _STALE_DAYS days
+function isStaleQuote(q) {
+  if (!['quoted', 'followup'].includes(q.stage || 'quoted')) return false;
+  const last = [q.dateOfQuote, q.lastTouchAt, ...(q.followUpTouches || []).map(t => t.sentAt)]
+    .filter(Boolean).map(x => String(x).slice(0, 10)).sort().pop();
+  if (q.followUpDate && q.followUpDate > localDateISO()) return false;   // snoozed into the future
+  return !!last && last <= localDateISO(-_STALE_DAYS);
+}
 
 function calcFollowUpStatus(q) {
   if (!['quoted', 'followup'].includes(q.stage)) return null;
   const touches = (q.followUpTouches || []).slice().sort((a, b) => a.touch - b.touch);
   const sentNums = touches.map(t => t.touch);
+
+  // A follow-up date in the future (set by a logged touch, a snooze, or by hand) wins
+  if (q.followUpDate && q.followUpDate > localDateISO()) {
+    const daysLeft = Math.round((new Date(q.followUpDate + 'T00:00:00') - new Date(localDateISO() + 'T00:00:00')) / 86400000);
+    return { status: 'pending', snoozed: true, daysLeft, touch: [1, 2, 3, 4].find(t => !sentNums.includes(t)) || null };
+  }
 
   const nextTouch = [1, 2, 3, 4].find(t => !sentNums.includes(t));
   if (!nextTouch) return { status: 'manual_review' };
@@ -5130,6 +5157,11 @@ function renderFollowUpWidget(sectionId, listId) {
       ${!isManual ? `<span class="followup-touch-badge${fu.touch === 4 ? ' t4' : ''}">Touch ${fu.touch}</span>` : `<span class="followup-touch-badge manual">Review</span>`}
       ${!isManual && email ? `<button class="btn-save" style="font-size:11px;padding:4px 12px;background:#1565c0;white-space:nowrap" onclick="openFollowUpDraft('${esc(q.id)}')">Draft Email</button>` : ''}
       ${!isManual && !email ? `<button class="btn-icon" style="font-size:11px;padding:4px 10px;color:#888" onclick="openQuoteModal('${esc(q.id)}')">Add Email</button>` : ''}
+      <span class="followup-quick">
+        ${snoozeButtonsHtml(esc(q.id))}
+        <button class="btn-icon convert" style="font-size:11px" onclick="pipelineAction('${esc(q.id)}','pl-won')">Won ✓</button>
+        <button class="btn-icon danger" style="font-size:11px" onclick="pipelineAction('${esc(q.id)}','pl-lost')">Lost ✕</button>
+      </span>
     `;
     list.appendChild(div);
   });
@@ -5213,7 +5245,11 @@ function _logFollowUpTouch(quoteId, touch) {
   q.followUpTouches = q.followUpTouches.filter(t => t.touch !== touch);
   q.followUpTouches.push({ touch, sentAt: new Date().toISOString() });
   q.followUpTouches.sort((a, b) => a.touch - b.touch);
-  q.updatedAt = new Date().toISOString();
+  // Push the follow-up date out to when the next touch is due — this clears "overdue"
+  q.followUpDate = localDateISO(touch < 4 ? _FU_GAPS[touch + 1] : _FU_AFTER_LAST);
+  q.lastTouchAt = new Date().toISOString();
+  if ((q.stage || 'quoted') === 'quoted') q.stage = 'followup';
+  q.updatedAt = q.lastTouchAt;
   saveData();
   renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
   renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
@@ -5741,6 +5777,7 @@ function renderPipeline() {
       })();
       const fuStatus = calcFollowUpStatus(q);
       const card = document.createElement('div');
+      const stale = isStaleQuote(q);
       card.className = 'pipeline-card' + (isOverdue ? ' overdue' : '');
       card.dataset.quoteId = q.id;
       card.style.cursor = 'pointer';
@@ -5761,6 +5798,7 @@ function renderPipeline() {
           <span>${formatDate(q.dateOfQuote)}${q.salesperson ? ' · ' + esc(q.salesperson) : ''}</span>
           ${overdueHtml}${outcomeHtml}
           ${fuBadgeHtml}
+          ${stale ? `<span class="badge stale-quote" title="No touch in ${_STALE_DAYS}+ days">Stale — close out or snooze?</span>` : ''}
           ${stage === 'lost' && q.lossReason ? `<span style="color:#9e9e9e;font-size:11px">${LOSS_LABELS[q.lossReason] || q.lossReason}</span>` : ''}
         </div>
         <div class="pc-actions">
@@ -5770,6 +5808,7 @@ function renderPipeline() {
           ${stage === 'followup' ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-quoted">← Quoted</button>` : ''}
           ${(stage === 'quoted' || stage === 'followup') ? `<button class="btn-icon convert" data-id="${q.id}" data-action="pl-won">Won ✓</button>` : ''}
           ${(stage === 'quoted' || stage === 'followup') ? `<button class="btn-icon danger" data-id="${q.id}" data-action="pl-lost">Lost ✕</button>` : ''}
+          ${(stage === 'quoted' || stage === 'followup') ? snoozeButtonsHtml(q.id) : ''}
           ${stage === 'won' && !isConverted ? `<button class="btn-icon convert" data-id="${q.id}" data-action="convert">Convert to Sale</button>` : ''}
           ${(stage === 'won' || stage === 'lost') ? `<button class="btn-icon" data-id="${q.id}" data-action="pl-reopen">Reopen</button>` : ''}
         </div>
@@ -5808,6 +5847,26 @@ function pipelineAction(id, action) {
   }
 }
 
+function snoozeQuote(id, days) {
+  const q = appState.quotes.find(x => x.id === id);
+  if (!q) return;
+  q.followUpDate = localDateISO(days);
+  q.lastTouchAt = new Date().toISOString();
+  q.updatedAt = q.lastTouchAt;
+  saveData();
+  renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
+  renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
+  updateOverdueBadge();
+  if (activeTab === 'deals') renderDeals();
+  toast(`${q.customerName}: next follow-up ${formatDate(q.followUpDate)}`);
+}
+
+function snoozeButtonsHtml(id) {
+  return `<span class="snooze-group" title="Push the follow-up date out">Snooze
+    ${[7, 14, 30].map(d => `<button class="btn-icon snooze-btn" onclick="event.stopPropagation();snoozeQuote('${id}',${d})">+${d}d</button>`).join('')}
+  </span>`;
+}
+
 function confirmLoss() {
   if (!pendingLossQuoteId) return;
   const q = appState.quotes.find(x => x.id === pendingLossQuoteId);
@@ -5819,6 +5878,8 @@ function confirmLoss() {
     q.updatedAt = now;
     saveData();
     renderPipeline();
+    renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
+    renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
     toast('Marked as Lost', 'warn');
   }
   document.getElementById('overlay-loss').classList.remove('open');
@@ -5836,6 +5897,8 @@ function markQuoteWon(id) {
   if (!q.wonAt) q.wonAt = now;
   q.updatedAt = now;
   saveData(); renderPipeline();
+  renderFollowUpWidget('dash-followup-section', 'dash-followup-list');
+  renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
   openConvertToSaleModal(id);
 }
 
@@ -9799,6 +9862,7 @@ function toggleTaskComplete(id) {
 
 function deleteTask(id) {
   appState.tasks = appState.tasks.filter(t => t.id !== id);
+  window.CloudSync?.deleteRemote('tasks', id);   // otherwise the cloud listener brings it back
   saveData();
   updateTaskBadge();
   if (activeTab === 'tasks') renderTasks();
@@ -9807,11 +9871,13 @@ function deleteTask(id) {
 }
 
 function clearCompletedTasks() {
-  const archiveCutoff = new Date(); archiveCutoff.setDate(archiveCutoff.getDate() - 30);
-  const cutoffStr = archiveCutoff.toISOString().slice(0, 10);
-  const before = appState.tasks.length;
-  appState.tasks = appState.tasks.filter(t => !t.completedAt || t.completedAt.slice(0, 10) < cutoffStr);
-  const removed = before - appState.tasks.length;
+  // "Clear All" clears every completed task (matches the phone app)
+  const toRemove = appState.tasks.filter(t => !!t.completedAt);
+  if (!toRemove.length) return;
+  if (!confirm(`Permanently delete ${toRemove.length} completed task${toRemove.length !== 1 ? 's' : ''}?`)) return;
+  appState.tasks = appState.tasks.filter(t => !t.completedAt);
+  toRemove.forEach(t => window.CloudSync?.deleteRemote('tasks', t.id));
+  const removed = toRemove.length;
   saveData(); updateTaskBadge(); renderTasks();
   if (removed > 0) toast(`Cleared ${removed} completed task${removed !== 1 ? 's' : ''}`);
 }
