@@ -1,7 +1,7 @@
 // AFL Sales Tracker — Service Worker v11 (2026-10-15)
 // Network-first for app files; cache-first only for images
 
-const CACHE_NAME = 'afl-mobile-v12';
+const CACHE_NAME = 'afl-mobile-v13';
 
 const APP_SHELL = [
   '/',

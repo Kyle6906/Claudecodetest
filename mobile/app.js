@@ -1758,6 +1758,20 @@ function _mobileWireCompanyAutocomplete(inputId) {
   });
 }
 
+// Address suggestions via Places API (New); same shape as the old API ({ description }).
+async function _mobileAddressSuggestions(input, apiKey) {
+  const call = body => fetch('https://places.googleapis.com/v1/places:autocomplete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text.text' },
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+  let json = await call({ input, includedRegionCodes: ['us'], includedPrimaryTypes: ['street_address', 'premise', 'subpremise', 'route'] });
+  if (json.error) json = await call({ input, includedRegionCodes: ['us'] });
+  return (json.suggestions || []).map(x => x.placePrediction).filter(Boolean)
+    .map(p => ({ description: p.text?.text || '', place_id: p.placeId }));
+}
+
 async function _mobileWireAddressAutocomplete(inputId) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -1771,8 +1785,7 @@ async function _mobileWireAddressAutocomplete(inputId) {
     if (q.length < 3) return;
     debTimer = setTimeout(async () => {
       try {
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(q)}&types=address&components=country:us&key=${encodeURIComponent(apiKey)}`;
-        const data = await (await fetch(url)).json();
+        const data = { predictions: await _mobileAddressSuggestions(q, apiKey) };
         if (!data.predictions?.length) return;
         if (dropdown) { dropdown.remove(); dropdown = null; }
         dropdown = document.createElement('div');

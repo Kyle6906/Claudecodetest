@@ -10594,7 +10594,7 @@ async function runMapsRawTest() {
   }
 
   panel.style.display = 'block';
-  panel.textContent = 'Calling Google Maps API from main process...\nURL: https://maps.googleapis.com/maps/api/place/textsearch/json?query=warehouse+Atlanta+GA&key=***KEY***';
+  panel.textContent = 'Calling Google Places API (New) from main process...\nPOST https://places.googleapis.com/v1/places:searchText';
 
   const r = await window.aflAPI.lgRawTest(key);
 
