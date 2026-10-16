@@ -678,10 +678,42 @@ function taskEnteredLabel(t) {
   return 'Entered ' + d.toLocaleDateString('en-US', opts);
 }
 
+
+// ── Task due dates: default, overdue highlight, grouping ───────────────────────
+const TASK_DEFAULT_DUE_DAYS = 3;   // new tasks default to due this many days out
+function taskLocalISO(offsetDays = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// Open tasks → overdue (oldest first), upcoming (soonest first), no date (newest first)
+function groupOpenTasks(open) {
+  const today = taskLocalISO();
+  const byDue = (a, b) => a.dueDate.localeCompare(b.dueDate);
+  const byNew = (a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || '');
+  return {
+    overdue:  open.filter(t => t.dueDate && t.dueDate < today).sort(byDue),
+    upcoming: open.filter(t => t.dueDate && t.dueDate >= today).sort(byDue),
+    undated:  open.filter(t => !t.dueDate).sort(byNew),
+  };
+}
+function taskDueClass(t) {
+  if (!t.dueDate || t.completedAt || t.completed) return '';
+  const today = taskLocalISO();
+  return t.dueDate < today ? ' overdue' : t.dueDate === today ? ' due-today' : '';
+}
+
+function openTaskSectionsHtml(open) {
+  const g = groupOpenTasks(open);
+  const section = (label, list, cls = '') => list.length
+    ? `<div class="task-section-label${cls}">${label} · ${list.length}</div><div class="task-list">${list.map(taskItemHtml).join('')}</div>` : '';
+  return section('Overdue', g.overdue, ' overdue') + section('Upcoming', g.upcoming) + section('No due date', g.undated);
+}
+
 function taskItemHtml(t) {
   const done = !!t.completedAt || !!t.completed;
   const enteredLabel = taskEnteredLabel(t);
-  const dueLabel = t.dueDate ? `Due ${fmt(t.dueDate)}` : '';
+  const dueCls = taskDueClass(t);
+  const dueLabel = t.dueDate ? (dueCls === ' overdue' ? `Overdue · ${fmt(t.dueDate)}` : dueCls === ' due-today' ? 'Due today' : `Due ${fmt(t.dueDate)}`) : '';
   const linkedName = t.linkedName || (t.linkedContactId ? appData.leads.find(l => l.id === t.linkedContactId)?.companyName : null);
   return `<div class="task-item${done ? ' completed' : ''}" data-task-id="${esc(t.id)}">
     <div class="task-checkbox${done ? ' checked' : ''}" data-task-check="${esc(t.id)}">${done ? '✓' : ''}</div>
@@ -689,7 +721,7 @@ function taskItemHtml(t) {
       <div class="task-title${done ? ' checked' : ''}">${esc(t.title)}</div>
       <div class="task-meta">
         ${enteredLabel ? `<span class="task-entered">${esc(enteredLabel)}</span>` : ''}
-        ${dueLabel ? `<span class="task-due">${esc(dueLabel)}</span>` : ''}
+        ${dueLabel ? `<span class="task-due${dueCls}">${esc(dueLabel)}</span>` : ''}
         ${linkedName ? `<span class="task-linked">${esc(linkedName)}</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${esc(t.notes)}</div>` : ''}
@@ -710,7 +742,7 @@ function renderTasks() {
     <div class="task-add-bar">
       <input class="task-add-input" id="task-title-input" type="text" placeholder="Add a task…">
       <div class="task-add-fields" id="task-add-fields" style="display:none">
-        <input class="task-add-subinput" id="task-due-input" type="date">
+        <input class="task-add-subinput" id="task-due-input" type="date" value="${taskLocalISO(TASK_DEFAULT_DUE_DAYS)}">
         <textarea class="task-add-subinput" id="task-notes-input" rows="2" placeholder="Notes (optional)"></textarea>
         <select class="task-add-subinput" id="task-contact-input">${leadOptions}</select>
         <div class="task-add-actions">
@@ -721,7 +753,7 @@ function renderTasks() {
     </div>
     <div id="tasks-list-body">
       ${!open.length && !done.length ? '<div class="empty-state"><div class="empty-text">No tasks yet — add one above!</div></div>' : ''}
-      ${open.length ? `<div class="task-list">${open.map(taskItemHtml).join('')}</div>` : ''}
+      ${open.length ? openTaskSectionsHtml(open) : ''}
       ${done.length ? `<div class="task-section-label">Completed <button class="clear-done-btn" onclick="clearDoneTasks()">Clear</button></div><div class="task-list">${done.map(taskItemHtml).join('')}</div>` : ''}
     </div>`;
   document.getElementById('task-title-input')?.addEventListener('focus', () => {
@@ -733,7 +765,7 @@ function renderTasks() {
   document.getElementById('task-add-save')?.addEventListener('click', addTaskFromBar);
   document.getElementById('task-add-cancel')?.addEventListener('click', () => {
     document.getElementById('task-title-input').value = '';
-    document.getElementById('task-due-input').value = '';
+    document.getElementById('task-due-input').value = taskLocalISO(TASK_DEFAULT_DUE_DAYS);
     document.getElementById('task-notes-input').value = '';
     document.getElementById('task-contact-input').value = '';
     document.getElementById('task-add-fields').style.display = 'none';
@@ -753,7 +785,7 @@ function renderTasksList() {
   const done = appData.tasks.filter(t => !!t.completedAt || !!t.completed).sort(byCreatedDesc);
   body.innerHTML =
     (!open.length && !done.length ? '<div class="empty-state"><div class="empty-text">No tasks yet — add one above!</div></div>' : '') +
-    (open.length ? `<div class="task-list">${open.map(taskItemHtml).join('')}</div>` : '') +
+    (open.length ? openTaskSectionsHtml(open) : '') +
     (done.length ? `<div class="task-section-label">Completed <button class="clear-done-btn" onclick="clearDoneTasks()">Clear</button></div><div class="task-list">${done.map(taskItemHtml).join('')}</div>` : '');
 }
 
@@ -801,7 +833,7 @@ async function addTaskFromBar() {
   const dueEl = document.getElementById('task-due-input');
   const notesEl = document.getElementById('task-notes-input');
   const contactEl = document.getElementById('task-contact-input');
-  if (dueEl) dueEl.value = '';
+  if (dueEl) dueEl.value = taskLocalISO(TASK_DEFAULT_DUE_DAYS);
   if (notesEl) notesEl.value = '';
   if (contactEl) contactEl.value = '';
   document.getElementById('task-add-fields').style.display = 'none';

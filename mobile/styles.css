@@ -360,6 +360,9 @@ a.info-value { color: #7cb0ff; text-decoration: none; }
 .task-title.checked { text-decoration: line-through; color: var(--text3); }
 .task-meta { font-size: 12px; color: var(--text2); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
 .task-due { color: var(--text2); }
+.task-due.overdue { color: #c62828; font-weight: 700; }
+.task-due.due-today { color: #e65100; font-weight: 700; }
+.task-section-label.overdue { color: #c62828; }
 .task-entered { color: var(--text2); opacity: 0.8; }
 .task-linked { color: #7cb0ff; }
 .task-notes { font-size: 12px; color: var(--text3); margin-top: 4px; white-space: pre-wrap; }

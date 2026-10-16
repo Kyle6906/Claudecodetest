@@ -1164,6 +1164,10 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
 .task-meta { font-size: 11px; color: #888; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .task-due { }
 .task-entered { color: #999; }
+.task-due.overdue, .dash-task-due.overdue { color: #c62828; font-weight: 700; }
+.task-due.due-today, .dash-task-due.due-today { color: #e65100; font-weight: 700; }
+.tasks-section-hdr.overdue { color: #c62828; }
+.tasks-section-count { font-weight: 400; color: #999; margin-left: 4px; }
 .task-priority { padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 .task-priority.low    { background: #f3f3f3; color: #777; }
 .task-priority.medium { background: #fff8e1; color: #f57f17; }
@@ -9724,10 +9728,35 @@ function taskEnteredLabel(t) {
   return 'Entered ' + d.toLocaleDateString('en-US', opts);
 }
 
+
+// ── Task due dates: default, overdue highlight, grouping ───────────────────────
+const TASK_DEFAULT_DUE_DAYS = 3;   // new tasks default to due this many days out
+function taskLocalISO(offsetDays = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// Open tasks → overdue (oldest first), upcoming (soonest first), no date (newest first)
+function groupOpenTasks(open) {
+  const today = taskLocalISO();
+  const byDue = (a, b) => a.dueDate.localeCompare(b.dueDate);
+  const byNew = (a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || '');
+  return {
+    overdue:  open.filter(t => t.dueDate && t.dueDate < today).sort(byDue),
+    upcoming: open.filter(t => t.dueDate && t.dueDate >= today).sort(byDue),
+    undated:  open.filter(t => !t.dueDate).sort(byNew),
+  };
+}
+function taskDueClass(t) {
+  if (!t.dueDate || t.completedAt || t.completed) return '';
+  const today = taskLocalISO();
+  return t.dueDate < today ? ' overdue' : t.dueDate === today ? ' due-today' : '';
+}
+
 function renderTaskItem(t) {
   const done = !!t.completedAt;
   const enteredStr = taskEnteredLabel(t);
-  const dueStr = t.dueDate ? `Due ${formatDate(t.dueDate)}` : '';
+  const dueCls = taskDueClass(t);
+  const dueStr = t.dueDate ? (dueCls === ' overdue' ? `Overdue · was due ${formatDate(t.dueDate)}` : dueCls === ' due-today' ? 'Due today' : `Due ${formatDate(t.dueDate)}`) : '';
   const linkBadge = t.linkedName ? `<span class="task-link-badge">${esc(t.linkedType)}: ${esc(t.linkedName)}</span>` : '';
   const assignBadge = t.assignedTo ? `<span style="font-size:11px;color:#888">→ ${esc(t.assignedTo)}</span>` : '';
   return `<div class="task-item${done ? ' completed' : ''}" data-task-id="${t.id}">
@@ -9736,7 +9765,7 @@ function renderTaskItem(t) {
       <div class="task-title-text" data-task-edit="${t.id}">${esc(t.title)}</div>
       <div class="task-meta">
         ${enteredStr ? `<span class="task-entered">${esc(enteredStr)}</span>` : ''}
-        ${dueStr ? `<span class="task-due">${esc(dueStr)}</span>` : ''}
+        ${dueStr ? `<span class="task-due${dueCls}">${esc(dueStr)}</span>` : ''}
         ${linkBadge}${assignBadge}
       </div>
       ${t.notes ? `<div style="font-size:12px;color:#777;margin-top:4px;white-space:pre-wrap">${esc(t.notes)}</div>` : ''}
@@ -9808,14 +9837,17 @@ function renderCommission() {
 
 function renderTasks() {
   const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
-  const open = appState.tasks.filter(t => !t.completedAt).sort(byNewest);
+  const open = appState.tasks.filter(t => !t.completedAt);
   const done = appState.tasks.filter(t => !!t.completedAt).sort(byNewest);
+  const g = groupOpenTasks(open);
+  const section = (label, list, cls = '') => list.length
+    ? `<div class="tasks-section-hdr${cls}">${label} <span class="tasks-section-count">${list.length}</span></div><div class="task-list">${list.map(renderTaskItem).join('')}</div>` : '';
   const container = document.getElementById('tasks-list-container');
   let html = '';
   if (!open.length && !done.length) {
     html = '<div class="task-empty">No tasks yet. Add one above!</div>';
   } else {
-    if (open.length) html += `<div class="task-list">${open.map(renderTaskItem).join('')}</div>`;
+    html += section('Overdue', g.overdue, ' overdue') + section('Upcoming', g.upcoming) + section('No due date', g.undated);
     if (done.length) html += `<div class="tasks-section-hdr">Completed <button class="btn-icon" onclick="clearCompletedTasks()" style="color:#c62828;font-size:11px">Clear All</button></div><div class="task-list">${done.map(renderTaskItem).join('')}</div>`;
   }
   container.innerHTML = html;
@@ -9823,16 +9855,18 @@ function renderTasks() {
 
 function renderDashboardTasks() {
   const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
-  const open = appState.tasks.filter(t => !t.completedAt).sort(byNewest).slice(0, 5);
+  const g = groupOpenTasks(appState.tasks.filter(t => !t.completedAt));
+  const open = [...g.overdue, ...g.upcoming, ...g.undated].slice(0, 5);
   document.getElementById('dash-tasks-stats').innerHTML = '';
   const listEl = document.getElementById('dash-tasks-upcoming');
   if (!open.length) { listEl.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:10px">No open tasks.</div>'; return; }
   listEl.innerHTML = open.map(t => {
-    const dueStr = t.dueDate ? `Due ${formatDate(t.dueDate)}` : '';
+    const dueCls = taskDueClass(t);
+    const dueStr = t.dueDate ? (dueCls === ' overdue' ? `Overdue · ${formatDate(t.dueDate)}` : dueCls === ' due-today' ? 'Due today' : `Due ${formatDate(t.dueDate)}`) : '';
     return `<div class="dash-task-item">
       <div class="dash-task-cb" data-dash-check="${t.id}" title="Mark complete"></div>
       <span class="dash-task-title">${esc(t.title)}</span>
-      ${dueStr ? `<span class="dash-task-due">${esc(dueStr)}</span>` : ''}
+      ${dueStr ? `<span class="dash-task-due${dueCls}">${esc(dueStr)}</span>` : ''}
     </div>`;
   }).join('');
 }
@@ -9842,7 +9876,7 @@ function openTaskModal(id = null, prefill = {}) {
   const t = id ? appState.tasks.find(x => x.id === id) : null;
   document.getElementById('task-modal-title').textContent = id ? 'Edit Task' : 'New Task';
   document.getElementById('t-title').value = t ? t.title : (prefill.title || '');
-  document.getElementById('t-due').value   = t ? (t.dueDate || '') : (prefill.dueDate || '');
+  document.getElementById('t-due').value   = t ? (t.dueDate || '') : (prefill.dueDate || taskLocalISO(TASK_DEFAULT_DUE_DAYS));
   document.getElementById('t-assigned').value = t ? (t.assignedTo || '') : (prefill.assignedTo || '');
   document.getElementById('t-notes').value    = t ? (t.notes || '') : (prefill.notes || '');
   document.getElementById('t-title').classList.remove('invalid');
@@ -9923,7 +9957,7 @@ function addQuickTask() {
   const title = input.value.trim();
   if (!title) return;
   const now = new Date().toISOString();
-  appState.tasks.push({ id: genId('t'), title, dueDate: null, linkedType: null, linkedId: null, linkedName: null, assignedTo: null, notes: null, completedAt: null, createdAt: now, updatedAt: now });
+  appState.tasks.push({ id: genId('t'), title, dueDate: taskLocalISO(TASK_DEFAULT_DUE_DAYS), linkedType: null, linkedId: null, linkedName: null, assignedTo: null, notes: null, completedAt: null, createdAt: now, updatedAt: now });
   input.value = '';
   saveData(); updateTaskBadge(); renderTasks();
   toast('Task added');
