@@ -124,6 +124,7 @@ main {
   line-height: 1;
   margin-bottom: 6px;
 }
+.stat-card .stat-sub { font-size: 11px; color: #999; margin-top: 4px; }
 .stat-card .stat-label {
   font-size: 12px;
   color: #666;
@@ -1318,11 +1319,12 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
       <input class="search-input" id="dash-search" type="text" placeholder="Search customers across quotes and sales...">
     </div>
     <div class="search-results" id="search-results"></div>
-    <div class="stat-row" style="grid-template-columns:repeat(7,1fr)">
+    <div class="stat-row" style="grid-template-columns:repeat(8,1fr)">
       <div class="stat-card"><div class="stat-num" id="ytd-sold">0</div><div class="stat-label">Sold YTD</div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-new">0</div><div class="stat-label">New Units YTD</div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-preowned">0</div><div class="stat-label">Pre-Owned YTD</div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-quotes">0</div><div class="stat-label">Quotes YTD</div></div>
+      <div class="stat-card" title="Won ÷ (won + lost), quotes dated this year. Open quotes don't count."><div class="stat-num" id="ytd-winrate">—</div><div class="stat-label">Win Rate YTD</div><div class="stat-sub" id="ytd-winrate-sub"></div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-commission">0</div><div class="stat-label">Commission Pending</div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-cash">0</div><div class="stat-label">Cash Sales YTD</div></div>
       <div class="stat-card"><div class="stat-num" id="ytd-revenue" style="font-size:22px">$0</div><div class="stat-label">Revenue YTD</div></div>
@@ -3843,6 +3845,10 @@ function renderDashboard() {
   document.getElementById('ytd-new').textContent = sumQty(newYTD);
   document.getElementById('ytd-preowned').textContent = sumQty(preownedYTD);
   document.getElementById('ytd-quotes').textContent = ytdQuotes.length;
+  const ytdWon  = ytdQuotes.filter(q => q.stage === 'won').length;
+  const ytdLost = ytdQuotes.filter(q => q.stage === 'lost').length;
+  document.getElementById('ytd-winrate').textContent = (ytdWon + ytdLost) ? Math.round(ytdWon / (ytdWon + ytdLost) * 100) + '%' : '—';
+  document.getElementById('ytd-winrate-sub').textContent = (ytdWon + ytdLost) ? `${ytdWon} won · ${ytdLost} lost` : 'No closed quotes yet';
   document.getElementById('ytd-commission').textContent = commPending.length;
   document.getElementById('ytd-cash').textContent = sumQty(cashYTD);
   const ytdRevTotal = ytdSales.reduce((sum, s) => sum + (Number(s.salePrice) || 0), 0);
