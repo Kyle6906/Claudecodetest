@@ -36,7 +36,7 @@ const TOYOTA_MODELS = {
 
 // ── App state ─────────────────────────────────────────────────────────────────
 let db, auth;
-let appData = { leads: [], equipment: [], tasks: [], quotes: [], sales: [], settings: {}, mapsApiKey: '', territoryZips: [...DEFAULT_ZIPS], contactDocuments: [] };
+let appData = { leads: [], equipment: [], tasks: [], quotes: [], sales: [], leases: [], settings: {}, mapsApiKey: '', territoryZips: [...DEFAULT_ZIPS], contactDocuments: [] };
 let activeTab    = 'home';
 let viewingId    = null;   // contact ID in profile sheet
 let isOnline     = navigator.onLine;
@@ -181,13 +181,15 @@ let _unsubLeads = null;
 async function loadData(showSkeleton = true) {
   if (showSkeleton) showSkeletons();
   try {
-    const [eqSnap, quotesSnap, salesSnap, settDoc] = await Promise.all([
+    const [eqSnap, quotesSnap, salesSnap, settDoc, leasesSnap] = await Promise.all([
       getDocs(collection(db, 'equipment')),
       getDocs(collection(db, 'quotes')),
       getDocs(collection(db, 'sales')),
       getDoc(doc(db, 'settings', 'main')),
+      getDocs(collection(db, 'leases')).catch(() => null),
     ]);
     const toArr = snap => snap.docs.map(d => d.data());
+    if (leasesSnap) appData.leases = toArr(leasesSnap);
     appData.equipment = toArr(eqSnap);
     appData.quotes    = toArr(quotesSnap);
     appData.sales     = toArr(salesSnap);
@@ -300,6 +302,34 @@ function renderTab(name) {
 }
 
 // ── Home Tab ──────────────────────────────────────────────────────────────────
+// Lease maturities (read-only on the phone; the desktop imports the TICF report)
+// FMV leases alert 120 days out, Dollar Out 30 days out — same as desktop.
+function homeLeasesHtml() {
+  const leases = (appData.leases || []).filter(l => !l.offReport);
+  if (!leases.length) return '';
+  const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  const days = d => Math.round((Date.parse(d + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000);
+  const hot = leases.filter(l => { const d = days(l.maturityDate); return d >= 0 && d <= (l.type === 'dollar_out' ? 30 : 120); });
+  const matured = leases.filter(l => days(l.maturityDate) < 0);
+  const groups = new Map();
+  for (const l of hot) {
+    const k = `${l.linkedName || l.customerName}|${l.maturityDate}|${l.type}`;
+    if (!groups.has(k)) groups.set(k, { name: l.linkedName || l.customerName, date: l.maturityDate, type: l.type, leadId: l.leadId, n: 0 });
+    groups.get(k).n++;
+  }
+  const rows = [...groups.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6).map(g => `
+    <div class="activity-item"${g.leadId ? ` data-contact="${esc(g.leadId)}"` : ''}>
+      <div class="activity-dot" style="background:${g.type === 'dollar_out' ? '#81c784' : '#7cb0ff'}"></div>
+      <div>
+        <div class="activity-company">${esc(g.name)}</div>
+        <div class="activity-meta">${g.n} ${g.type === 'dollar_out' ? 'Dollar Out' : 'FMV'} unit${g.n === 1 ? '' : 's'} · ${fmt(g.date)} · ${days(g.date)}d</div>
+      </div>
+    </div>`).join('');
+  if (!rows && !matured.length) return '';
+  return `<div class="section-header">Leases Maturing</div>${rows}
+    ${matured.length ? `<div class="activity-meta" style="padding:6px 16px;color:#ff8a80">⚠ ${matured.length} matured unit${matured.length === 1 ? '' : 's'} still on the report</div>` : ''}`;
+}
+
 function renderHome() {
   const el = document.getElementById('tab-home');
   if (!el) return;
@@ -340,6 +370,7 @@ function renderHome() {
       </div>
     </div>
     <button class="quick-prospect-btn" id="home-prospect-btn">🎯 Quick Prospect — High Priority Fleet</button>
+    ${homeLeasesHtml()}
     ${recentHtml ? `<div class="section-header">Recent Contacts</div>${recentHtml}` : ''}
   `;
   document.getElementById('home-prospect-btn')?.addEventListener('click', () => runQuickProspect());

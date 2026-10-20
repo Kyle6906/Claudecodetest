@@ -15,6 +15,9 @@ const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const FU_GAPS = { 1: 8, 2: 8, 3: 14, 4: 30 };
 const FU_AFTER_LAST = 30;
 const LOSS_REASONS = ['price', 'competitor', 'no_longer_needed', 'timing', 'other'];
+// Lease maturities (TICF report, imported on desktop). FMV alerts 120 days out, Dollar Out 30.
+const LEASE_ALERT_DAYS = { fmv: 120, dollar_out: 30 };
+const LEASE_TYPE = { fmv: 'FMV lease', dollar_out: 'Dollar Out ($1 buyout)' };
 
 const genId = p => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 const todayNY = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
@@ -94,6 +97,26 @@ const taskBrief = t => clean({
   id: t.id, title: t.title, entered: taskEntered(t), due: t.dueDate, done: !!t.completedAt, completedAt: t.completedAt,
   linkedTo: t.linkedName, linkedId: t.linkedId, notes: t.notes,
 });
+const daysBetween = (from, to) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000);
+function leaseStatus(l, today) {
+  if (l.offReport) return 'off_report';
+  const d = daysBetween(today, l.maturityDate);
+  return d < 0 ? 'matured' : d <= (LEASE_ALERT_DAYS[l.type] ?? 30) ? 'act_now' : 'upcoming';
+}
+// Group units by customer + maturity date + type
+function leaseGroups(leases, today) {
+  const map = new Map();
+  for (const l of leases) {
+    const k = `${l.leadId || l.customerName}|${l.maturityDate}|${l.type}`;
+    if (!map.has(k)) map.set(k, { customer: l.linkedName || l.customerName, reportName: l.customerName, contactId: l.leadId || undefined,
+      maturityDate: l.maturityDate, daysUntil: daysBetween(today, l.maturityDate), type: LEASE_TYPE[l.type] || l.type,
+      status: leaseStatus(l, today), units: 0, monthlyPayments: 0, serials: [], alertTaskCreated: !!l.alertedAt });
+    const g = map.get(k);
+    g.units++; g.monthlyPayments = Math.round((g.monthlyPayments + (l.basePayment || 0)) * 100) / 100; g.serials.push(l.serial);
+  }
+  return [...map.values()].sort((a, b) => a.maturityDate.localeCompare(b.maturityDate));
+}
+
 const visitBrief = v => clean({
   id: v.visitId || v.id, date: v.visitDate, time: v.visitTime, company: v.companyName, contact: v.contactName,
   contactId: v.contactId, outcome: v.outcome, notes: v.notes, nextAction: v.nextAction,
@@ -154,8 +177,8 @@ function registerTools(server, db) {
     const lead = await getLead(contact_id);
     if (!lead) return fail(`No contact with id ${contact_id}. Use search_contacts first.`);
     const today = todayNY();
-    const [quotes, sales, equipment, tasks, visits] = await Promise.all(
-      ['quotes', 'sales', 'equipment', 'tasks', 'visitLogs'].map(n => S.all(n)));
+    const [quotes, sales, equipment, tasks, visits, leases] = await Promise.all(
+      ['quotes', 'sales', 'equipment', 'tasks', 'visitLogs', 'leases'].map(n => S.all(n)));
     const { activityLog = [], statusHistory = [], ...rest } = lead;
     return ok({
       contact: clean({ ...rest, status: contactStatus(lead, sales, quotes), storedStatus: rest.status }),
@@ -166,6 +189,7 @@ function registerTools(server, db) {
       equipment: equipment.filter(e => e.leadId === lead.id).map(e => clean({ id: e.id, oem: e.oem, model: e.model, serial: e.serialNumber, purchased: e.dateOfPurchase, city: e.city, notes: e.notes })),
       tasks: tasks.filter(t => t.linkedId === lead.id).map(taskBrief),
       visits: visits.filter(v => v.contactId === lead.id).sort((a, b) => String(b.visitDate).localeCompare(String(a.visitDate))).map(visitBrief),
+      leases: (() => { const mine = leases.filter(l => l.leadId === lead.id && !l.offReport); return mine.length ? leaseGroups(mine, today) : undefined; })(),
     });
   });
 
@@ -198,12 +222,15 @@ function registerTools(server, db) {
 
   server.registerTool('whats_due', {
     title: 'What\'s due',
-    description: 'Kyle\'s to-do radar: open quotes whose follow-up date falls within the window (or are overdue), plus open tasks due in the window or overdue. Default window is the next 7 days.',
+    description: 'Kyle\'s to-do radar: open quotes whose follow-up date falls within the window (or are overdue), open tasks due in the window or overdue, and leases maturing in the window plus how many matured units are still on the report. Default window is the next 7 days.',
     inputSchema: { days_ahead: z.number().int().min(0).max(90).optional() },
     annotations: RO,
   }, async ({ days_ahead = 7 }) => {
     const today = todayNY(), until = addDays(today, days_ahead);
-    const [quotes, tasks] = await Promise.all([S.all('quotes'), S.all('tasks')]);
+    const [quotes, tasks, leases] = await Promise.all([S.all('quotes'), S.all('tasks'), S.all('leases')]);
+    const onReport = leases.filter(l => !l.offReport);
+    const leaseDue = leaseGroups(onReport.filter(l => l.maturityDate >= today && l.maturityDate <= until), today);
+    const maturedOnReport = onReport.filter(l => l.maturityDate < today);
     const qDue = quotes.filter(q => {
       const st = q.stage || 'quoted';
       return (st === 'quoted' || st === 'followup') && ((q.followUpDate && q.followUpDate <= until) || overdueDays(q, today) !== null);
@@ -216,7 +243,34 @@ function registerTools(server, db) {
       quoteFollowUps: qDue.map(q => quoteBrief(q, today)),
       tasks: tDue.map(t => ({ ...taskBrief(t), overdue: t.dueDate < today || undefined })),
       openTasksWithNoDueDate: undated,
+      leasesMaturing: leaseDue.length ? leaseDue : undefined,
+      maturedLeasesStillOnReport: maturedOnReport.length
+        ? { units: maturedOnReport.length, customers: [...new Set(maturedOnReport.map(l => l.linkedName || l.customerName))] } : undefined,
     });
+  });
+
+  server.registerTool('list_leases', {
+    title: 'List lease maturities',
+    description: 'Units from Kyle\'s TICF lease maturity report, grouped by customer + maturity date + type. "FMV lease" = fair market value lease (alert 120 days out); "Dollar Out" = $1 buyout lease (alert 30 days out). status: act_now (in alert window), matured (past maturity, still on report — likely month-to-month), upcoming, off_report (dropped off the latest report).',
+    inputSchema: {
+      customer: z.string().optional().describe('Match customer/company name'),
+      within_days: z.number().int().min(0).max(1825).optional().describe('Only units maturing within this many days (includes matured)'),
+      status: z.enum(['act_now', 'matured', 'upcoming', 'off_report', 'all']).optional().describe('Default: everything still on the report'),
+      type: z.enum(['fmv', 'dollar_out']).optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    },
+    annotations: RO,
+  }, async ({ customer, within_days, status, type, limit = 50 }) => {
+    const today = todayNY();
+    const all = await S.all('leases');
+    if (!all.length) return ok({ note: 'No lease report imported yet. Import the TICF Maturity Report from the desktop app (Contacts → Import, or the Leases tab).' });
+    const rows = all.filter(l =>
+      (!customer || norm(`${l.customerName} ${l.linkedName || ''}`).includes(norm(customer))) &&
+      (!type || l.type === type) &&
+      (status === 'all' || (status ? leaseStatus(l, today) === status : !l.offReport)) &&
+      (within_days === undefined || daysBetween(today, l.maturityDate) <= within_days));
+    const groups = leaseGroups(rows, today);
+    return ok({ today, units: rows.length, groups: groups.length, results: groups.slice(0, limit) });
   });
 
   server.registerTool('list_tasks', {
