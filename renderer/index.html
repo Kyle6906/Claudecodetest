@@ -124,6 +124,31 @@ main {
   line-height: 1;
   margin-bottom: 6px;
 }
+.lease-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+.lease-stat { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:14px; cursor:pointer; }
+.lease-stat b { display:block; font-size:28px; color:#333; line-height:1.1; }
+.lease-stat span { font-size:11px; color:#777; text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+.lease-stat.matured b { color:#c62828; } .lease-stat.alert b { color:#e65100; }
+.lease-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.lease-month { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#555; margin:16px 0 6px; }
+.lease-month span { font-weight:400; color:#999; margin-left:6px; text-transform:none; }
+.lease-group { background:#fff; border:1px solid #e6e6e6; border-left:4px solid #cfd8dc; border-radius:6px; margin-bottom:6px; }
+.lease-group.alert { border-left-color:#ef6c00; } .lease-group.matured { border-left-color:#c62828; } .lease-group.off { opacity:.6; }
+.lease-group summary { display:grid; grid-template-columns:110px 1fr 100px 70px 100px 76px; gap:10px; align-items:center; padding:9px 12px; cursor:pointer; font-size:13px; list-style:none; }
+.lease-group summary::-webkit-details-marker { display:none; }
+.lease-date { font-weight:700; } .lease-date small, .lease-name small { display:block; font-weight:400; color:#999; font-size:11px; }
+.lease-cust { color:#1565c0; font-weight:600; text-decoration:none; } .lease-cust.unlinked { color:#333; } a.lease-cust:hover { text-decoration:underline; }
+.lease-type { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; text-align:center; white-space:nowrap; }
+.lease-type.fmv { background:#e3f2fd; color:#1565c0; } .lease-type.dollar_out { background:#e8f5e9; color:#2e7d32; }
+.lease-units, .lease-pay { color:#555; white-space:nowrap; }
+.lease-chip { justify-self:end; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+.lease-chip.alert { background:#fff3e0; color:#e65100; } .lease-chip.matured { background:#ffebee; color:#c62828; } .lease-chip.off { background:#f5f5f5; color:#777; }
+.lease-units-table { width:100%; border-collapse:collapse; font-size:12px; margin:0 0 8px; }
+.lease-units-table th { text-align:left; color:#888; font-weight:600; padding:4px 12px; border-top:1px solid #f0f0f0; }
+.lease-units-table td { padding:4px 12px; border-top:1px solid #f6f6f6; }
+.dash-lease-row { display:grid; grid-template-columns:44px 1fr 70px 170px; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid #f3f3f3; font-size:13px; cursor:pointer; }
+.dash-lease-name { font-weight:600; } .dash-lease-units { color:#666; } .dash-lease-date { color:#e65100; font-weight:600; text-align:right; }
+.dash-lease-matured { margin-top:8px; font-size:12px; color:#c62828; font-weight:600; cursor:pointer; }
 .stat-card .stat-sub { font-size: 11px; color: #999; margin-top: 4px; }
 .stat-card .stat-label {
   font-size: 12px;
@@ -1257,6 +1282,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <button class="tab-btn" data-tab="sales">Sales</button>
     <button class="tab-btn" data-tab="tasks">Tasks <span class="tab-badge" id="tasks-open-badge" style="display:none">0</span></button>
     <button class="tab-btn" data-tab="dailylog">Daily Log</button>
+    <button class="tab-btn" data-tab="leases">Leases <span class="tab-badge" id="leases-alert-badge" style="display:none;background:#e65100">0</span></button>
     <button class="tab-btn" data-tab="commission">Commission</button>
     <button class="tab-btn" data-tab="documents">Docs <span class="tab-badge" id="docs-count-badge" style="display:none;background:#1a3a7a">0</span></button>
     <button class="tab-btn" data-tab="settings">Settings</button>
@@ -1416,6 +1442,13 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
           <tbody id="dash-top-units"></tbody>
         </table>
       </div>
+    </div>
+    <div class="card dash-grid-full" id="dash-leases-widget" style="display:none">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Lease Maturities <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">FMV within 120 days · Dollar Out within 30</span></span>
+        <button class="btn-icon" onclick="switchTab('leases')" style="font-size:12px">View All →</button>
+      </div>
+      <div id="dash-leases-list"></div>
     </div>
     <div class="card dash-grid-full" id="dash-tasks-widget">
       <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -1636,6 +1669,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
           <div class="import-dropdown-divider"></div>
           <div class="import-dropdown-item" id="btn-import-uio" onclick="closeImportDropdown();importUIOFleet()">&#128229; Import UIO / Fleet</div>
           <div class="import-dropdown-item" id="btn-import-aging" onclick="closeImportDropdown();importAgingReport()">&#128203; Import Aging Report</div>
+          <div class="import-dropdown-item" id="btn-import-leases" onclick="closeImportDropdown();importLeaseReport()">&#128197; Import TICF Maturity Report</div>
         </div>
       </div>
     </div>
@@ -1980,7 +2014,22 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
     <div id="comm-root"></div>
   </section>
 
+  <section id="tab-leases" class="tab-panel">
+    <div id="leases-root"></div>
+  </section>
+
 </main>
+
+<div class="modal-overlay" id="overlay-lease-import">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">Import TICF Maturity Report</div>
+    <div id="lease-import-body"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('overlay-lease-import').classList.remove('open');window._leasePending=null">Cancel</button>
+      <button class="btn-save" onclick="confirmLeaseImport()">Import</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Fleet Search Full-Screen Panel ─────────────────────────────────────── -->
 <div id="overlay-fleet-search" class="fleet-search-overlay">
@@ -3395,6 +3444,7 @@ async function loadData() {
       }
       if (!appState.documents) appState.documents = [];
       if (!appState.equipment) appState.equipment = [];
+      if (!appState.leases) appState.leases = [];
       // Backfill stage for old quotes
       for (const q of appState.quotes) { if (!q.stage) q.stage = 'quoted'; }
       // Migrate old customer records (name → companyName + id)
@@ -3644,6 +3694,7 @@ async function _syncToFirestoreOnce() {
     ['tasks', appState.tasks || []],
     ['equipment', appState.equipment || []],
     ['contactDocuments', appState.contactDocuments || []],
+    ['leases', appState.leases || []],
   ];
   let written = 0;
   for (const [name, records] of cols) {
@@ -3681,7 +3732,7 @@ async function _loadFromFirestore() {
   try {
     const { collection, doc, getDocs, getDoc } = window._fs;
     console.log('[AFL] Local data empty — loading from Firestore...');
-    const [leadsSnap, quotesSnap, salesSnap, tasksSnap, equipSnap, docsSnap, settSnap] = await Promise.all([
+    const [leadsSnap, quotesSnap, salesSnap, tasksSnap, equipSnap, docsSnap, settSnap, leasesSnap] = await Promise.all([
       getDocs(collection(window.db, 'leads')),
       getDocs(collection(window.db, 'quotes')),
       getDocs(collection(window.db, 'sales')),
@@ -3689,8 +3740,10 @@ async function _loadFromFirestore() {
       getDocs(collection(window.db, 'equipment')),
       getDocs(collection(window.db, 'contactDocuments')),
       getDoc(doc(window.db, 'settings', 'main')),
+      getDocs(collection(window.db, 'leases')),
     ]);
     const toArr = snap => snap.docs.map(d => d.data());
+    appState.leases   = toArr(leasesSnap);
     appState.leads    = toArr(leadsSnap);
     appState.quotes   = toArr(quotesSnap);
     appState.sales    = toArr(salesSnap);
@@ -3840,6 +3893,7 @@ function switchTab(tab) {
   else if (tab === 'settings') renderSettings();
   else if (tab === 'documents') renderDocuments();
   else if (tab === 'dailylog') renderDailyLog();
+  else if (tab === 'leases') window.renderLeases?.();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -4055,6 +4109,9 @@ function renderDashboard() {
 
   // Fleet Intelligence widget
   renderFleetWidget();
+
+  // Lease maturities widget + tab badge
+  window.refreshLeaseViews?.();
 }
 
 function buildCustStats() {
@@ -7037,6 +7094,11 @@ function openLeadProfile(id, opts = {}) {
   document.getElementById('lead-profile-body').appendChild(fleetContainer);
   renderLeadFleetPanel(l.id);
 
+  const leaseContainer = document.createElement('div');
+  leaseContainer.style.marginTop = '16px';
+  document.getElementById('lead-profile-body').appendChild(leaseContainer);
+  window.renderLeadLeases?.(l, leaseContainer);
+
   _loadLeadSatellitePanel(l);
   document.getElementById('overlay-lead-profile').classList.add('open');
 }
@@ -8388,7 +8450,7 @@ document.getElementById('docs-view-list-btn').addEventListener('click', () => {
 });
 
 // Close modals on overlay click
-['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup','overlay-uio-import','overlay-add-fleet-unit','overlay-aging-import','overlay-aging-review','overlay-contact-doc-upload'].forEach(id => {
+['overlay-quote','overlay-sale','overlay-import','overlay-loss','overlay-alt-check','overlay-convert-sale','overlay-lead','overlay-lead-profile','overlay-cust-edit','overlay-cust-profile','overlay-task','overlay-import-leads','overlay-import-leads-summary','overlay-post-convert','overlay-upload-doc','overlay-edit-doc','overlay-backup','overlay-backup-setup','overlay-uio-import','overlay-add-fleet-unit','overlay-aging-import','overlay-aging-review','overlay-contact-doc-upload','overlay-lease-import'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
   });
@@ -9878,6 +9940,7 @@ function startTasksListener() {
       updateTaskBadge();
       if (typeof activeTab !== 'undefined' && activeTab === 'tasks') renderTasks();
       if (typeof activeTab !== 'undefined' && activeTab === 'dashboard') renderDashboardTasks();
+      if (!snap.metadata?.fromCache && typeof window.startLeaseAlerts === 'function') window.startLeaseAlerts();
     },
     err => console.error('[AFL] Tasks listener error:', err)
   );
@@ -13114,5 +13177,6 @@ async function agingCreateSeparate(leadId) {
   toast('Separate record created');
 }
 </script>
+<script src="leases.js"></script>
 </body>
 </html>
