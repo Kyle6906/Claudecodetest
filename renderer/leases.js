@@ -44,6 +44,17 @@ function leaseType(transaction) {
   if (t.includes('dollar') || t.includes('$1')) return 'dollar_out';
   return 'fmv';
 }
+// "Vin-Model/Serial" → model + serial. The report packs both into one field:
+// 8FGCU25-35776, 50-8FGCU25-11052, RF1-BH1X45-01023, SJ3220E-A101019160, 6255KK.
+// Split at the last dash; "508FGCU25-…" (missing dash) → "50-8FGCU25".
+function leaseSplitUnit(raw) {
+  const s = String(raw ?? '').trim().replace(/\s*-\s*/g, '-');
+  const i = s.lastIndexOf('-');
+  if (i <= 0 || i === s.length - 1) return { model: '', serialNo: s };
+  let model = s.slice(0, i);
+  if (/^50\d[A-Z]/.test(model)) model = '50-' + model.slice(2);
+  return { model, serialNo: s.slice(i + 1) };
+}
 function leaseIdFor(serial) { return 'ls_' + String(serial).toUpperCase().replace(/[^A-Z0-9]+/g, '_'); }
 function leaseNum(v) { const n = Number(String(v ?? '').replace(/[$,]/g, '')); return isFinite(n) ? n : 0; }
 
@@ -105,7 +116,7 @@ function leaseParseReport(headers, rows) {
     if (seen.has(id)) continue;
     seen.add(id);
     out.push({
-      id, serial, customerName, maturityDate,
+      id, serial, ...leaseSplitUnit(serial), customerName, maturityDate,
       startDate: leaseToISO(get(r, c.start)),
       term: leaseNum(get(r, c.term)) || null,
       type: leaseType(get(r, c.transaction)),
@@ -194,7 +205,7 @@ function leaseTaskFor(g, now = new Date().toISOString()) {
   const action = g.type === 'dollar_out'
     ? 'Dollar Out: get $1 buyout paperwork going and have the upgrade/replacement conversation.'
     : 'FMV lease: decide return, renew, or replace. New-unit lead time is long, so quote replacements now.';
-  const lines = g.units.map(u => `• ${u.serial}${u.basePayment ? ` — $${u.basePayment.toFixed(2)}/mo` : ''}${u.city ? ` (${u.city}${u.state ? ', ' + u.state : ''})` : ''}`);
+  const lines = g.units.map(u => { const p = leaseSplitUnit(u.serial); return `• ${p.model ? p.model + ' · S/N ' : 'S/N '}${p.serialNo}`; }).map((t, i) => { const u = g.units[i]; return `${t}${u.basePayment ? ` — $${u.basePayment.toFixed(2)}/mo` : ''}${u.city ? ` (${u.city}${u.state ? ', ' + u.state : ''})` : ''}`; });
   return {
     id: (typeof genId === 'function' ? genId('t') : `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
     title: `Lease maturing ${dateStr}: ${g.customerName} — ${n} ${typeLabel} unit${n === 1 ? '' : 's'}`,
@@ -208,7 +219,7 @@ function leaseTaskFor(g, now = new Date().toISOString()) {
 
 // Node/test export
 if (typeof module !== 'undefined') {
-  module.exports = { LEASE_ALERT_DAYS, leaseToISO, leaseType, leaseIdFor, leaseNameTokens, leaseNamesMatch, leaseFindLead,
+  module.exports = { LEASE_ALERT_DAYS, leaseSplitUnit, leaseToISO, leaseType, leaseIdFor, leaseNameTokens, leaseNamesMatch, leaseFindLead,
     leaseParseReport, leaseMerge, leaseStatus, leaseGroups, leaseDueAlerts, leaseTaskFor, leaseDaysUntil, leaseTodayISO };
 }
 
@@ -319,15 +330,74 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         <span class="lease-pay">${g.monthly ? fmtMoney(g.monthly) + '/mo' : ''}</span>
         ${statusChip(st)}
       </summary>
-      <table class="lease-units-table"><thead><tr><th>Serial</th><th>Start</th><th>Term</th><th>Payment</th><th>Location</th><th></th></tr></thead><tbody>
-        ${g.units.map(u => `<tr><td>${esc(u.serial)}</td><td>${esc(fmtLeaseDate(u.startDate) || '')}</td><td>${u.term ? u.term + ' mo' : ''}</td>
+      <div class="lease-group-actions">
+        <button class="btn-icon" onclick="copyLeaseUnits('${esc(g.key).replace(/'/g, '&#39;')}')">Copy for TICF</button>
+        <span>Model + serial for each unit, ready to paste into an email or Excel</span>
+      </div>
+      <table class="lease-units-table"><thead><tr><th>Model</th><th>Serial #</th><th>Start</th><th>Term</th><th>Payment</th><th>Location</th><th></th></tr></thead><tbody>
+        ${g.units.map(u => { const p = leaseSplitUnit(u.serial); return `<tr><td class="lease-model">${esc(p.model || '—')}</td><td class="lease-sn">${esc(p.serialNo)}</td><td>${esc(fmtLeaseDate(u.startDate) || '')}</td><td>${u.term ? u.term + ' mo' : ''}</td>
           <td>${u.basePayment ? '$' + u.basePayment.toFixed(2) : ''}</td><td>${esc([u.street, u.city, u.state].filter(Boolean).join(', '))}</td>
-          <td>${u.alertedAt ? '<span style="color:#2e7d32;font-size:11px">Task created</span>' : ''}</td></tr>`).join('')}
+          <td>${u.alertedAt ? '<span style="color:#2e7d32;font-size:11px">Task created</span>' : ''}</td></tr>`; }).join('')}
       </tbody></table>
     </details>`;
   }
 
   let _leaseFilter = { type: '', view: 'upcoming', q: '' };
+  let _leaseShownGroups = [];
+
+  // Rows for TICF: one per unit, model and serial split
+  function leaseUnitRows(groups) {
+    const rows = [];
+    for (const g of groups) for (const u of g.units) {
+      const p = leaseSplitUnit(u.serial);
+      rows.push({ Customer: g.customerName, Model: p.model, 'Serial #': p.serialNo, 'Lease Type': LEASE_TYPE_LABELS[u.type],
+        'Maturity Date': u.maturityDate, 'Monthly Payment': u.basePayment || '', Location: [u.street, u.city, u.state, u.zip].filter(Boolean).join(', '),
+        'Report Serial': u.serial });
+    }
+    return rows;
+  }
+
+  // Copy as a table (pastes as a real table in Outlook, as columns in Excel)
+  window.copyLeaseUnits = async function copyLeaseUnits(groupKey) {
+    const groups = groupKey ? _leaseAllGroups().filter(g => g.key === groupKey) : _leaseShownGroups;
+    const rows = leaseUnitRows(groups).map(({ 'Report Serial': _r, 'Monthly Payment': _p, ...r }) => r);
+    if (!rows.length) { toast('Nothing to copy', 'warn'); return; }
+    const cols = Object.keys(rows[0]);
+    const fmtCell = (c, v) => c === 'Maturity Date' ? fmtLeaseDate(v) : v;
+    const text = [cols.join('\t'), ...rows.map(r => cols.map(c => fmtCell(c, r[c])).join('\t'))].join('\n');
+    const html = `<table border="1" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:12px"><tr>${cols.map(c => `<th style="background:#eee">${esc(c)}</th>`).join('')}</tr>${rows.map(r => `<tr>${cols.map(c => `<td>${esc(fmtCell(c, r[c]))}</td>`).join('')}</tr>`).join('')}</table>`;
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+        ok = true;
+      }
+    } catch (e) { /* fall back below */ }
+    if (!ok) {
+      const div = document.createElement('div');
+      div.contentEditable = 'true'; div.style.cssText = 'position:fixed;left:-9999px;top:0';
+      div.innerHTML = html; document.body.appendChild(div);
+      const range = document.createRange(); range.selectNodeContents(div);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      sel.removeAllRanges(); div.remove();
+    }
+    toast(ok ? `Copied ${rows.length} unit${rows.length === 1 ? '' : 's'} — paste into your email to TICF` : 'Copy failed', ok ? 'success' : 'error');
+  };
+
+  window.exportLeasesExcel = function exportLeasesExcel() {
+    const rows = leaseUnitRows(_leaseShownGroups);
+    if (!rows.length) { toast('Nothing to export', 'warn'); return; }
+    if (typeof XLSX === 'undefined') { toast('Export library not available', 'error'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 13 }, { wch: 15 }, { wch: 44 }, { wch: 22 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leases');
+    XLSX.writeFile(wb, `AFL-Lease-Units-${leaseTodayISO()}.xlsx`);
+    toast(`Exported ${rows.length} units`);
+  };
+
+  function _leaseAllGroups() { return leaseGroups(appState.leases || []); }
   window.renderLeases = function renderLeases() {
     const root = document.getElementById('leases-root');
     if (!root) return;
@@ -357,6 +427,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     });
     const groups = leaseGroups(rows);
     if (f.view === 'matured' || f.view === 'off') groups.reverse();
+    _leaseShownGroups = groups;
     const byMonth = new Map();
     for (const g of groups) {
       const m = g.maturityDate.slice(0, 7);
@@ -382,6 +453,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
           <option value="fmv"${f.type === 'fmv' ? ' selected' : ''}>FMV Lease</option>
           <option value="dollar_out"${f.type === 'dollar_out' ? ' selected' : ''}>Dollar Out</option>
         </select>
+        <button class="btn-icon" onclick="copyLeaseUnits()" title="Copy model + serial for every unit in this view">Copy shown for TICF</button>
+        <button class="btn-icon" onclick="exportLeasesExcel()">Export Excel</button>
         <button class="btn-save" onclick="importLeaseReport()">Import Maturity Report</button>
       </div>
       ${imported ? `<div style="font-size:11px;color:#999;margin:-6px 0 10px">Last imported ${esc(imported)}</div>` : ''}

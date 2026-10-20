@@ -98,6 +98,15 @@ const taskBrief = t => clean({
   linkedTo: t.linkedName, linkedId: t.linkedId, notes: t.notes,
 });
 const daysBetween = (from, to) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000);
+// "8FGCU25-35776" / "50-8FGCU25-11052" → model + serial (split at last dash)
+function leaseSplitUnit(raw) {
+  const s = String(raw ?? '').trim().replace(/\s*-\s*/g, '-');
+  const i = s.lastIndexOf('-');
+  if (i <= 0 || i === s.length - 1) return { model: '', serial: s };
+  let model = s.slice(0, i);
+  if (/^50\d[A-Z]/.test(model)) model = '50-' + model.slice(2);
+  return { model, serial: s.slice(i + 1) };
+}
 function leaseStatus(l, today) {
   if (l.offReport) return 'off_report';
   const d = daysBetween(today, l.maturityDate);
@@ -110,9 +119,9 @@ function leaseGroups(leases, today) {
     const k = `${l.leadId || l.customerName}|${l.maturityDate}|${l.type}`;
     if (!map.has(k)) map.set(k, { customer: l.linkedName || l.customerName, reportName: l.customerName, contactId: l.leadId || undefined,
       maturityDate: l.maturityDate, daysUntil: daysBetween(today, l.maturityDate), type: LEASE_TYPE[l.type] || l.type,
-      status: leaseStatus(l, today), units: 0, monthlyPayments: 0, serials: [], alertTaskCreated: !!l.alertedAt });
+      status: leaseStatus(l, today), units: 0, monthlyPayments: 0, unitList: [], alertTaskCreated: !!l.alertedAt });
     const g = map.get(k);
-    g.units++; g.monthlyPayments = Math.round((g.monthlyPayments + (l.basePayment || 0)) * 100) / 100; g.serials.push(l.serial);
+    g.units++; g.monthlyPayments = Math.round((g.monthlyPayments + (l.basePayment || 0)) * 100) / 100; g.unitList.push(clean({ ...leaseSplitUnit(l.serial), payment: l.basePayment || undefined }));
   }
   return [...map.values()].sort((a, b) => a.maturityDate.localeCompare(b.maturityDate));
 }
