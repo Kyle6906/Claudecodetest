@@ -4633,15 +4633,15 @@ function setDealsView(view) {
 }
 
 // Quotes created by importing a non-quote file (e.g. the TICF lease report run
-// through Import Excel on 10/20): no valid quote date, no units, no price, never
-// followed up or sold. A real quote always has a date and something quoted.
+// through Import Excel on 10/20 — "Sales Rep" landed in the date, the serial in
+// forkliftModel): no valid quote date, no line items, no price, never followed
+// up or sold. A real quote always has a date and something quoted.
 function findJunkImportQuotes() {
   const sold = new Set(appState.sales.map(s => s.linkedQuoteId).filter(Boolean));
   return appState.quotes.filter(q =>
     (q.stage || 'quoted') === 'quoted' &&
     !/^\d{4}-\d{2}-\d{2}$/.test(q.dateOfQuote || '') &&
     !(q.lineItems && q.lineItems.length) &&
-    (!q.forkliftModel || q.forkliftModel === 'Other') &&
     !q.askingPrice && !q.quotedPrice &&
     !(q.followUpTouches && q.followUpTouches.length) &&
     !q.followUpDate && !sold.has(q.id));
