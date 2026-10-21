@@ -1534,6 +1534,7 @@ a.email-link::before { content: '✉ '; font-size: 11px; opacity: 0.7; }
         <button class="btn-add" id="btn-add-deal">+ New Quote</button>
       </div>
     </div>
+    <div id="deals-junk-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;font-size:13px;color:#7a4100;align-items:center;gap:12px;justify-content:space-between"></div>
     <div id="deals-followup-section" style="display:none;margin-bottom:16px">
       <div class="section-title" style="color:#1565c0;margin-bottom:6px">
         Follow-Ups Due
@@ -4631,7 +4632,51 @@ function setDealsView(view) {
   renderDeals();
 }
 
+// Quotes created by importing a non-quote file (e.g. the TICF lease report run
+// through Import Excel on 10/20): no valid quote date, no units, no price, never
+// followed up or sold. A real quote always has a date and something quoted.
+function findJunkImportQuotes() {
+  const sold = new Set(appState.sales.map(s => s.linkedQuoteId).filter(Boolean));
+  return appState.quotes.filter(q =>
+    (q.stage || 'quoted') === 'quoted' &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(q.dateOfQuote || '') &&
+    !(q.lineItems && q.lineItems.length) &&
+    (!q.forkliftModel || q.forkliftModel === 'Other') &&
+    !q.askingPrice && !q.quotedPrice &&
+    !(q.followUpTouches && q.followUpTouches.length) &&
+    !q.followUpDate && !sold.has(q.id));
+}
+function renderJunkQuoteBanner() {
+  const el = document.getElementById('deals-junk-banner');
+  if (!el) return;
+  const junk = findJunkImportQuotes();
+  if (!junk.length) { el.style.display = 'none'; return; }
+  const custs = new Set(junk.map(q => q.customerName)).size;
+  el.style.display = 'flex';
+  el.innerHTML = `<span>⚠ <strong>${junk.length} quotes</strong> across ${custs} customers look like a bad import: no quote date, no units, no price. They're inflating your open pipeline.</span>
+    <button class="btn-save" style="background:#e65100;white-space:nowrap" onclick="removeJunkImportQuotes()">Review &amp; remove</button>`;
+}
+async function removeJunkImportQuotes() {
+  const junk = findJunkImportQuotes();
+  if (!junk.length) return;
+  const byCust = {};
+  for (const q of junk) byCust[q.customerName] = (byCust[q.customerName] || 0) + 1;
+  const top = Object.entries(byCust).sort((a, b) => b[1] - a[1]);
+  const list = top.slice(0, 12).map(([c, n]) => `  ${n} × ${c}`).join('\n') + (top.length > 12 ? `\n  …and ${top.length - 12} more customers` : '');
+  if (!confirm(`Remove ${junk.length} empty imported quotes?\n\n${list}\n\nEach has no quote date, no units, no price, no follow-ups and no sale. Your real quotes are not touched. A backup runs first.`)) return;
+  try { if (typeof runBackupNow === 'function') await runBackupNow({ silent: true }); } catch (e) { console.warn('[Cleanup] backup failed', e); }
+  const ids = new Set(junk.map(q => q.id));
+  appState.quotes = appState.quotes.filter(q => !ids.has(q.id));
+  for (const id of ids) window.CloudSync?.deleteRemote('quotes', id);
+  await saveData();
+  renderDeals();
+  if (activeTab === 'dashboard') renderDashboard();
+  updateOverdueBadge();
+  toast(`Removed ${ids.size} empty imported quotes`);
+}
+
 function renderDeals() {
+  renderJunkQuoteBanner();
   renderFollowUpWidget('deals-followup-section', 'deals-followup-list');
   if (dealsView === 'kanban') renderPipeline();
   else renderDealsList();
@@ -4945,6 +4990,12 @@ async function startImport() {
   const result = await window.aflAPI.parseExcel(filePath);
   if (result.error) { toast('Failed to parse file: ' + result.error, 'error'); return; }
   if (!result.headers || result.headers.length === 0) { toast('File appears empty', 'warn'); return; }
+  // A TICF lease maturity report is not quotes/sales — send it to the lease importer
+  const h = result.headers.map(x => String(x).toLowerCase());
+  if (h.some(x => x.includes('maturity')) && h.some(x => x.includes('transaction') || x.includes('vin-model'))) {
+    if (confirm('This looks like a TICF Maturity Report, not quotes or sales.\n\nImport it as leases instead?')) window.importLeaseReport?.();
+    return;
+  }
   importData = result;
   buildImportModal(result);
   document.getElementById('overlay-import').classList.add('open');
